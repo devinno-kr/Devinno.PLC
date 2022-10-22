@@ -1,10 +1,10 @@
-﻿using Devinno.Communications.Modbus.RTU;
-using Devinno.Extensions;
-using Devinno.Forms;
+﻿using Devinno.Forms;
 using Devinno.Forms.Controls;
 using Devinno.Forms.Dialogs;
 using Devinno.Forms.Extensions;
+using Devinno.Forms.Icons;
 using Devinno.Forms.Themes;
+using Devinno.Forms.Utils;
 using Devinno.PLC.Ladder;
 using Devinno.Tools;
 using GuiLabs.Undo;
@@ -60,7 +60,7 @@ namespace LadderEditor.Controls
         }
         #endregion
         #region ScrollPosition
-        public long ScrollPosition
+        public double ScrollPosition
         {
             get => scroll.ScrollPosition;
             set
@@ -73,12 +73,11 @@ namespace LadderEditor.Controls
             }
         }
         #endregion
-        
 
         #region Color
         #region BoxColor
-        private Color cBoxColor = DvTheme.DefaultTheme.Color2;
-        public Color BoxColor
+        private Color? cBoxColor = null;
+        public Color? BoxColor
         {
             get => cBoxColor;
             set
@@ -92,8 +91,8 @@ namespace LadderEditor.Controls
         }
         #endregion
         #region NumberBoxColor
-        private Color cNumberBoxColor = DvTheme.DefaultTheme.Color1;
-        public Color NumberBoxColor
+        private Color? cNumberBoxColor = null;
+        public Color? NumberBoxColor
         {
             get => cNumberBoxColor;
             set
@@ -117,6 +116,7 @@ namespace LadderEditor.Controls
                 if (nRowCount != value)
                 {
                     nRowCount = value;
+                    MakeRows();
                     Invalidate();
                 }
             }
@@ -150,6 +150,7 @@ namespace LadderEditor.Controls
                 if (lstLadder != value)
                 {
                     lstLadder = value;
+                    MakeRows();
                     Invalidate();
                 }
             }
@@ -162,11 +163,10 @@ namespace LadderEditor.Controls
             get { return nCurX; }
             set
             {
-                if (nCurX != value)
+                var v = MathTool.Constrain(value, 0, ColumnCount - 1);
+                if (nCurX != v)
                 {
-                    nCurX = value;
-                    if (nCurX < 0) nCurX = 0;
-                    if (nCurX > ColumnCount - 1) nCurX = ColumnCount - 1;
+                    nCurX = v;
                     if (!ShiftKey) { seldown = null; selup = null; }
                     Invalidate();
                 }
@@ -180,24 +180,28 @@ namespace LadderEditor.Controls
             get { return nCurY; }
             set
             {
-                if (nCurY != value)
+                var v = MathTool.Constrain(value, 0, Rows.Count - 1);
+                if (nCurY != v)
                 {
-                    bool Large = nCurY < value;
-                    nCurY = value;
-                    if (nCurY < 0) nCurY = 0;
-                    if (nCurY > RowCount - 1) RowCount = nCurY + 1;
-                    //if (CurY - StartIndex > GetViewCount() - 1) SetScroll(CurY - GetViewCount() + 1);
-                    //if (CurY < StartIndex) SetScroll(CurY);
+                    nCurY = v;
 
-                    var th = GetContentRect().Height;
-                    if ((CurY * RowHeight) + RowHeight > ScrollPosition + th) ScrollPosition = (((CurY * RowHeight) + RowHeight) - th);
-                    if ((CurY * RowHeight) < ScrollPosition) ScrollPosition = CurY * RowHeight;
+                    #region Scroll
+                    var th = GetContentBounds().Height;
+                    if ((nCurY * RowHeight) + RowHeight > ScrollPosition + th) ScrollPosition = (((nCurY * RowHeight) + RowHeight) - th);
+                    if ((nCurY * RowHeight) < ScrollPosition) ScrollPosition = nCurY * RowHeight;
+                    #endregion
 
                     if (!ShiftKey) { seldown = null; selup = null; }
                     Invalidate();
                 }
             }
         }
+        #endregion
+        #region CurCol
+        public int CurCol => CurX;
+        #endregion
+        #region CurRow
+        public int CurRow => CurY >= 0 && CurY < Rows.Count ? Rows[CurY].Row : RowCount - 1;
         #endregion
         #region CanUndo / CanRedo
         public bool CanUndo => actmgr.CanUndo;
@@ -243,6 +247,10 @@ namespace LadderEditor.Controls
         #region Editable
         public bool Editable => Buffer.Count == 0;
         #endregion
+        #region Rows
+        public List<LadderRow> Rows { get; private set; } = new List<LadderRow>();
+        public Dictionary<int, LadderRow> DicRows { get; private set; } = new Dictionary<int, LadderRow>();
+        #endregion
         #endregion
 
         #region Member Variable
@@ -252,7 +260,7 @@ namespace LadderEditor.Controls
         private DateTime downTime;
         #endregion
         #region Dialogs
-        DvMessageBox MessageBox = new DvMessageBox();
+        DvMessageBox MessageBox = new DvMessageBox() { StartPosition = FormStartPosition.CenterParent };
         #endregion
         #region Drag
         Point? dragpos = null;
@@ -273,7 +281,7 @@ namespace LadderEditor.Controls
         Point selprev;
         #endregion
         #region Form
-        LadderEditForm frmEdit = new LadderEditForm();
+        LadderEditForm2 frmEdit = new LadderEditForm2();
         #endregion
         #region Timer
         Timer tmr = new Timer();
@@ -282,9 +290,8 @@ namespace LadderEditor.Controls
         #region MonitorValues
         Dictionary<string, MonitorValue> MonitorValues = new Dictionary<string, MonitorValue>();
         #endregion
-        #region Viewer ?
-        //FormLadderViewer viewer = null;
-        #endregion
+
+        Point mp;
         #endregion
 
         #region Event 
@@ -307,9 +314,9 @@ namespace LadderEditor.Controls
             //scroll.TouchMode = true;
             scroll.Direction = ScrollDirection.Vertical;
             scroll.ScrollChanged += (o, s) => this.Invoke(new Action(() => Invalidate()));
-            scroll.GetScrollTotal = () => RowCount * RowHeight;
+            scroll.GetScrollTotal = () => Rows.Count * RowHeight;
             scroll.GetScrollTick = () => RowHeight;
-            scroll.GetScrollView = () => Areas.ContainsKey("rtBox") ? Areas["rtBox"].Height : 0;
+            scroll.GetScrollView = () => GetContentBounds().Height;
             #endregion
 
             #region Timer
@@ -322,7 +329,7 @@ namespace LadderEditor.Controls
                     {
                         selmove = new Point(selmove.Value.X, (selmove.Value.Y - 1 > 0 ? selmove.Value.Y - 1 : 0));
                         int CurY = selmove.Value.Y;
-                        var th = GetContentRect().Height;
+                        var th = GetContentBounds().Height;
                         if ((CurY * RowHeight) + RowHeight > ScrollPosition + th) ScrollPosition = (((CurY * RowHeight) + RowHeight) - th);
                         if ((CurY * RowHeight) < ScrollPosition) ScrollPosition = CurY * RowHeight;
 
@@ -331,7 +338,7 @@ namespace LadderEditor.Controls
                     {
                         selmove = new Point(selmove.Value.X, (selmove.Value.Y + 1 < RowCount ? selmove.Value.Y + 1 : RowCount - 1));
                         int CurY = selmove.Value.Y;
-                        var th = GetContentRect().Height;
+                        var th = GetContentBounds().Height;
                         if ((CurY * RowHeight) + RowHeight > ScrollPosition + th) ScrollPosition = (((CurY * RowHeight) + RowHeight) - th);
                         if ((CurY * RowHeight) < ScrollPosition) ScrollPosition = CurY * RowHeight;
                     }
@@ -342,46 +349,32 @@ namespace LadderEditor.Controls
             #endregion
 
             #region Timer2
-            tmr2.Interval = 25;
+            tmr2.Interval = 10;
             tmr2.Tick += (o, s) => { if (Debug) Invalidate(); };
             tmr2.Enabled = true;
             #endregion
 
             Font = new Font("나눔고딕", NormalFontSize);
+
+            actmgr.CollectionChanged += (o, s) => MakeRows();
         }
         #endregion
 
         #region Override
-        #region LoadAreas
-        protected override void LoadAreas(Graphics g)
-        {
-            base.LoadAreas(g);
-
-            var scwh = Convert.ToInt32(Scroll.SC_WH * DpiRatio);
-            var rtContent = Areas["rtContent"];
-            var rtNumber = new Rectangle(rtContent.Left, rtContent.Top, NumberBoxWidth, rtContent.Height);
-            var rtBox = new Rectangle(rtNumber.Right, rtContent.Top, rtContent.Width - scwh - NumberBoxWidth, rtContent.Height);
-            var rtScroll = new Rectangle(rtBox.Right, rtBox.Top, scwh, rtBox.Height);
-
-            SetArea("rtNumber", rtNumber);
-            SetArea("rtBox", rtBox);
-            SetArea("rtScroll", rtScroll);
-        }
-        #endregion
         #region OnThemeDraw
         protected override void OnThemeDraw(PaintEventArgs e, DvTheme Theme)
         {
             #region Color
-            var BoxColor = UseThemeColor ? Theme.Color2 : this.BoxColor;
-            var NumberSectionColor = UseThemeColor ? Theme.Color1 : this.NumberBoxColor;
+            var BoxColor = this.BoxColor ?? Theme.ListBackColor;
+            var NumberSectionColor = this.NumberBoxColor ?? Theme.InputColor;
+            var BorderColor = Theme.GetBorderColor(NumberSectionColor, BackColor);
             #endregion
             #region Set
             e.Graphics.SmoothingMode = SmoothingMode.HighQuality;
             e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            var LD_ROW = Ladders.ToLookup(x => x.Row);
             var mp = this.PointToClient(MousePosition);
-
+            
             AfterItem after = null;
             #endregion
             #region Init
@@ -389,270 +382,230 @@ namespace LadderEditor.Controls
             var br = new SolidBrush(Color.Black);
             var ftb = new Font(Font.FontFamily, Font.Size, FontStyle.Bold);
             #endregion
-            #region Bounds
-            var rtContent = Areas["rtContent"];
-            var rtNumber = Areas["rtNumber"];
-            var rtBox = Areas["rtBox"];
-            var rtScroll = Areas["rtScroll"];
-            #endregion
 
-            #region Result Calc
-            Dictionary<string, List<List<LadderItem>>> result = new Dictionary<string, List<List<LadderItem>>>();
-            if (Debug)
+            Areas((rtContent, rtNumber, rtBox, rtScroll) =>
             {
-                var r = LadderTool.Build(Ladders);
-                result = r.ValidNodes;
-                foreach (var v in Ladders)
-                {
-                    v.MonitorV = false;
-                    v.PrevMonitorV = v.Col == 0;
-                    v.VerticalMonitorV = v.MonitorV;
-                }
-
                 #region Result Calc
-                foreach (var k in result.Keys)
+                Dictionary<string, List<List<LadderItem>>> result = new Dictionary<string, List<List<LadderItem>>>();
+                if (Debug)
                 {
-                    foreach (var vls in result[k])
+                    var r = LadderTool.Build(Ladders);
+                    result = r.ValidNodes;
+                    foreach (var v in Ladders)
                     {
-                        foreach (var _v in vls)
-                        {
-                            int iprev = vls.IndexOf(_v) - 1;
-                            int inext = vls.IndexOf(_v) + 1;
-
-                            var pv = iprev >= 0 ? GetLadder(vls[iprev].Row, vls[iprev].Col) : null;
-                            var nv = inext < vls.Count ? GetLadder(vls[inext].Row, vls[inext].Col) : null;
-
-                            var v = GetLadder(_v.Row, _v.Col);
-                            if (v != null)
-                            {
-                                if (pv != null) v.PrevMonitorV = pv.MonitorV;
-                                switch (v.ItemType)
-                                {
-                                    case LadderItemType.NONE:
-                                    case LadderItemType.LINE_H:
-                                        {
-                                            v.MonitorV |= v.PrevMonitorV;
-                                        }
-                                        break;
-
-                                    case LadderItemType.IN_A:
-                                    case LadderItemType.IN_B:
-                                    case LadderItemType.OUT_COIL:
-                                    case LadderItemType.OUT_FUNC:
-                                        {
-                                            v.MonitorV |= (v.PrevMonitorV && v.Monitor);
-                                        }
-                                        break;
-                                    case LadderItemType.RISING_EDGE:
-                                    case LadderItemType.FALLING_EDGE:
-                                    case LadderItemType.NOT:
-                                        {
-                                            v.MonitorV = v.Monitor;
-                                        }
-                                        break;
-                                }
-                                v.VerticalMonitorV |= v.MonitorV;
-
-                            }
-                        }
+                        v.MonitorV = false;
+                        v.PrevMonitorV = v.Col == 0;
+                        v.VerticalMonitorV = v.MonitorV;
                     }
-                }
-                #endregion
 
-                foreach (var v in Ladders)
-                {
-                    if (v.VerticalLine)
+                    #region Result Calc
+                    foreach (var k in result.Keys)
                     {
-                        var nv = GetLadder(v.Row + 1, v.Col);
-                        var nv2 = GetLadder(v.Row + 1, v.Col - 1);
-                        if ((nv != null && !nv.MonitorV) || (nv == null && nv2 != null && !nv2.MonitorV)) v.VerticalMonitorV = false;
-                    }
-                }
-            }
-            #endregion
-
-            #region Draw
-            #region Box
-            e.Graphics.Clear(BackColor);
-            Theme.DrawBox(e.Graphics, NumberSectionColor, BackColor, rtNumber, RoundType.L, BoxDrawOption.OUT_SHADOW);
-            Theme.DrawBox(e.Graphics, BoxColor, BackColor, rtBox, RoundType.NONE, BoxDrawOption.OUT_SHADOW);
-
-            #endregion
-
-            #region Cursor
-            var curw = (double)rtBox.Width / (double)ColumnCount;
-            var rtCur = new Rectangle(rtBox.X + Convert.ToInt32(CurX * curw), rtBox.Y + (CurY * RowHeight) - Convert.ToInt32(scroll.ScrollPosition), Convert.ToInt32(curw), RowHeight);
-            rtCur.Inflate(-1, -1);
-
-            e.Graphics.SetClip(rtBox);
-
-            p.Color = Focused ? Color.Cyan : Color.FromArgb(60, Color.Cyan);
-            p.Width = 1;
-            p.DashStyle = DashStyle.Solid;
-            e.Graphics.DrawRectangle(p, rtCur);
-
-            e.Graphics.ResetClip();
-            #endregion
-
-            #region Scroll
-            br.Color = Theme.ScrollBarColor;
-            Theme.DrawBox(e.Graphics, Theme.ScrollBarColor, BackColor, rtScroll, RoundType.R, BoxDrawOption.BORDER | BoxDrawOption.OUT_SHADOW);
-
-            var cCur = Theme.ScrollCursorColor;
-            if (scroll.IsScrolling) cCur = Theme.ScrollCursorColor.BrightnessTransmit(0.3);
-            else if (scroll.IsTouchMoving) cCur = Theme.PointColor.BrightnessTransmit(0.3);
-
-            var rtcur = scroll.GetScrollCursorRect(rtScroll);
-            if (rtcur.HasValue) Theme.DrawBox(e.Graphics, cCur, Theme.ScrollBarColor, rtcur.Value, RoundType.ALL, BoxDrawOption.BORDER);
-            #endregion
-
-            #region NumberBox / Items
-            var sidx = Convert.ToInt32(Math.Floor((double)ScrollPosition / (double)RowHeight));
-            var rcnt = Convert.ToInt32(Math.Ceiling((double)rtBox.Height / (double)RowHeight));
-            e.Graphics.SetClip(rtContent);
-
-            for (int i = sidx-1; i < sidx + rcnt; i++)
-            {
-                var y = Convert.ToInt32(-ScrollPosition + (i * RowHeight));
-                var rtNumBox = new Rectangle(rtNumber.Left, y, rtNumber.Width, RowHeight);
-
-                Theme.DrawText(e.Graphics, null, (i + 1).ToString(), i == CurY ? ftb : Font, i == CurY ? Color.White : Color.FromArgb(120, 120, 120), rtNumBox);
-
-                if (!DesignMode)
-                {
-                    #region Item
-                    if (LD_ROW.Contains(i))
-                    {
-                        foreach (var v in LD_ROW[i])
+                        foreach (var vls in result[k])
                         {
-                            var x = Convert.ToInt32(rtNumber.Right + (v.Col * curw));
-                            var rt = new Rectangle(x, y, Convert.ToInt32(curw), RowHeight);
-                            var sz = e.Graphics.MeasureString(v.Code, Font);
+                            foreach (var _v in vls)
+                            {
+                                int iprev = vls.IndexOf(_v) - 1;
+                                int inext = vls.IndexOf(_v) + 1;
 
-                            if (CollisionTool.Check(rt, mp) && (rt.Width < sz.Width))
-                            {
-                                after = new AfterItem() { item = v, Bounds = rt };
-                            }
-                            else
-                            {
-                                if (!Debug)
+                                var pv = iprev >= 0 ? GetLadder(vls[iprev].Row, vls[iprev].Col) : null;
+                                var nv = inext < vls.Count ? GetLadder(vls[inext].Row, vls[inext].Col) : null;
+
+                                var v = GetLadder(_v.Row, _v.Col);
+                                if (v != null)
                                 {
-                                    if (bCutBuffer && Buffer.Contains(v)) PaintItem(e.Graphics, Color.FromArgb(120, Color.White), rtBox, rt, v, mp);
-                                    else PaintItem(e.Graphics, Color.White, rtBox, rt, v, mp);
-                                }
-                                else
-                                {
-                                    PaintDebug(e.Graphics, rt, v);
+                                    if (pv != null) v.PrevMonitorV = pv.MonitorV;
+                                    switch (v.ItemType)
+                                    {
+                                        case LadderItemType.NONE:
+                                        case LadderItemType.LINE_H:
+                                            {
+                                                v.MonitorV |= v.PrevMonitorV;
+                                            }
+                                            break;
+
+                                        case LadderItemType.IN_A:
+                                        case LadderItemType.IN_B:
+                                        case LadderItemType.OUT_COIL:
+                                        case LadderItemType.OUT_FUNC:
+                                            {
+                                                v.MonitorV |= (v.PrevMonitorV && v.Monitor);
+                                            }
+                                            break;
+                                        case LadderItemType.RISING_EDGE:
+                                        case LadderItemType.FALLING_EDGE:
+                                        case LadderItemType.NOT:
+                                            {
+                                                v.MonitorV = v.Monitor;
+                                            }
+                                            break;
+                                    }
+                                    v.VerticalMonitorV |= v.MonitorV;
+
                                 }
                             }
                         }
                     }
                     #endregion
+
+                    foreach (var v in Ladders)
+                    {
+                        if (v.VerticalLine)
+                        {
+                            var nv = GetLadder(v.Row + 1, v.Col);
+                            var nv2 = GetLadder(v.Row + 1, v.Col - 1);
+                            if ((nv != null && !nv.MonitorV) || (nv == null && nv2 != null && !nv2.MonitorV)) v.VerticalMonitorV = false;
+                        }
+                    }
                 }
+                #endregion
 
-            }
-            e.Graphics.ResetClip();
-            #endregion
+                #region Draw
+                #region Set
+                var curw = (double)rtBox.Width / (double)ColumnCount;
+                #endregion
 
-            #region Select Range
-            if (seldown.HasValue && selmove.HasValue && !selup.HasValue)
-            {
-                int minx = Math.Min(seldown.Value.X, selmove.Value.X);
-                int miny = Math.Min(seldown.Value.Y, selmove.Value.Y);
-                int maxx = Math.Max(seldown.Value.X, selmove.Value.X);
-                int maxy = Math.Max(seldown.Value.Y, selmove.Value.Y);
+                #region Box
+                e.Graphics.Clear(BackColor);
+                Theme.DrawBox(e.Graphics, rtNumber, NumberSectionColor, BorderColor, RoundType.L, Box.FlatBox(true, true));
+                Theme.DrawBox(e.Graphics, rtBox, BoxColor, BorderColor, RoundType.Rect, Box.FlatBox(true, true));
+                #endregion
+                                
+                #region Scroll
+                br.Color = Theme.ScrollBarColor;
+                Theme.DrawBox(e.Graphics, rtScroll, Theme.ScrollBarColor, BorderColor, RoundType.R, Box.FlatBox(true, true));
 
-                int w = maxx - minx + 1;
-                int h = maxy - miny + 1;
+                var cCur = Theme.ScrollCursorOffColor;
+                if (scroll.IsScrolling || scroll.IsTouchMoving) cCur = Theme.ScrollCursorOnColor;
 
+                var rtcur = scroll.GetScrollCursorRect(rtScroll);
+                if (rtcur.HasValue) Theme.DrawBox(e.Graphics, rtcur.Value, cCur, BorderColor, RoundType.All, BoxStyle.Fill);
+                #endregion
 
-                var x = Convert.ToInt32(rtNumber.Right + (minx * curw));
-                var y = Convert.ToInt32((double)rtContent.Y + ((double)miny * RowHeight)) - Convert.ToInt32(ScrollPosition);
-                Rectangle rtSel = new Rectangle(x, y, Convert.ToInt32(curw * w), RowHeight * h);
-                rtSel.Inflate(-1, -1);
-
-                p.Color = Color.Yellow;
-                p.DashStyle = DashStyle.Dash;
-                br.Color = Color.FromArgb(20, Color.Yellow);
-                e.Graphics.FillRectangle(br, rtSel);
-                e.Graphics.DrawRectangle(p, rtSel);
-            }
-            else if (seldown.HasValue && selup.HasValue)
-            {
-                int minx = Math.Min(seldown.Value.X, selup.Value.X);
-                int miny = Math.Min(seldown.Value.Y, selup.Value.Y);
-                int maxx = Math.Max(seldown.Value.X, selup.Value.X);
-                int maxy = Math.Max(seldown.Value.Y, selup.Value.Y);
-
-                int w = maxx - minx + 1;
-                int h = maxy - miny + 1;
-
-                var x = Convert.ToInt32(rtNumber.Right + (minx * curw));
-                var y = Convert.ToInt32((double)rtContent.Y + ((double)miny * RowHeight)) - Convert.ToInt32(ScrollPosition);
-                Rectangle rtSel = new Rectangle(x, y, Convert.ToInt32(curw * w), RowHeight * h);
-                rtSel.Inflate(-1, -1);
-
-                p.Color = Color.White;
-                p.DashStyle = DashStyle.Dash;
-                br.Color = Color.FromArgb(20, Color.White);
-                e.Graphics.FillRectangle(br, rtSel);
-                e.Graphics.DrawRectangle(p, rtSel);
-            }
-            #endregion
-
-            #region Buffer Range
-            if (Buffer.Count > 0)
-            {
-                var minx = Buffer.Min(_x => _x.Col);
-                var maxx = Buffer.Max(_x => _x.Col);
-                var miny = Buffer.Min(_x => _x.Row);
-                var maxy = Buffer.Max(_x => _x.Row);
-                var gapx = CurX - minx;
-                var gapy = CurY - miny;
-
-                int w = maxx - minx + 1;
-                int h = maxy - miny + 1;
-
-                Color csel = Color.Magenta;
-
-                foreach (var v in Buffer)
+                #region Select Range
+                p.Width = 1;
+                if (seldown.HasValue && selmove.HasValue && !selup.HasValue)
                 {
-                    var x = Convert.ToInt32(rtNumber.Right + ((v.Col + gapx) * curw));
-                    var y = Convert.ToInt32((double)rtContent.Y + ((double)(v.Row + gapy) * RowHeight)) - Convert.ToInt32(ScrollPosition);
-                    Rectangle rtRange = new Rectangle(x, y, Convert.ToInt32(curw), RowHeight);
-                    Color c = csel;
-                    if (gapx + maxx > ColumnCount - 1 || gapy + maxy > RowCount - 1) c = Color.Red;
-                    PaintItem(e.Graphics, c, rtBox, rtRange, v, mp);
+                    int minx = Math.Min(seldown.Value.X, selmove.Value.X);
+                    int miny = Math.Min(seldown.Value.Y, selmove.Value.Y);
+                    int maxx = Math.Max(seldown.Value.X, selmove.Value.X);
+                    int maxy = Math.Max(seldown.Value.Y, selmove.Value.Y);
+
+                    int w = maxx - minx + 1;
+                    int h = maxy - miny + 1;
+
+
+                    var x = Convert.ToInt32(rtNumber.Right + (minx * curw));
+                    var y = Convert.ToInt32((double)rtContent.Y + ((double)miny * RowHeight)) - Convert.ToInt32(ScrollPosition);
+                    Rectangle rtSel = new Rectangle(x, y, Convert.ToInt32(curw * w), RowHeight * h);
+                    rtSel.Inflate(-1, -1);
+
+                    p.Color = Color.Yellow;
+                    p.DashStyle = DashStyle.Dash;
+                    br.Color = Color.FromArgb(20, Color.Yellow);
+                    e.Graphics.FillRectangle(br, rtSel);
+                    e.Graphics.DrawRectangle(p, rtSel);
                 }
-            }
-            #endregion
-
-            #region Border
-            p.DashStyle = DashStyle.Solid;
-            p.Color = Color.FromArgb(15, 15, 15);
-
-            Theme.DrawBorder(e.Graphics, p.Color, NumberSectionColor, 1, rtContent, RoundType.ALL, BoxDrawOption.BORDER);
-            e.Graphics.DrawLine(p, rtBox.Left, rtBox.Top, rtBox.Left, rtBox.Bottom);
-            e.Graphics.DrawLine(p, rtBox.Right, rtBox.Top, rtBox.Right, rtBox.Bottom);
-            #endregion
-
-            #region AfterDraw
-            if(after != null)
-            {
-                var v = after.item;
-                var rt = after.Bounds;
-                if (!Debug)
+                else if (seldown.HasValue && selup.HasValue)
                 {
-                    if (bCutBuffer && Buffer.Contains(v)) PaintItem(e.Graphics, Color.FromArgb(120, Color.White), rtBox, rt, v, mp);
-                    else PaintItem(e.Graphics, Color.White, rtBox, rt, v, mp);
+                    int minx = Math.Min(seldown.Value.X, selup.Value.X);
+                    int miny = Math.Min(seldown.Value.Y, selup.Value.Y);
+                    int maxx = Math.Max(seldown.Value.X, selup.Value.X);
+                    int maxy = Math.Max(seldown.Value.Y, selup.Value.Y);
+
+                    int w = maxx - minx + 1;
+                    int h = maxy - miny + 1;
+
+                    var x = Convert.ToInt32(rtNumber.Right + (minx * curw));
+                    var y = Convert.ToInt32((double)rtContent.Y + ((double)miny * RowHeight)) - Convert.ToInt32(ScrollPosition);
+                    Rectangle rtSel = new Rectangle(x, y, Convert.ToInt32(curw * w), RowHeight * h);
+                    rtSel.Inflate(-1, -1);
+
+                    p.Color = Color.White;
+                    p.DashStyle = DashStyle.Dash;
+                    br.Color = Color.FromArgb(20, Color.White);
+                    e.Graphics.FillRectangle(br, rtSel);
+                    e.Graphics.DrawRectangle(p, rtSel);
                 }
-                else
+                #endregion
+
+                #region Buffer Range
+                if (Buffer.Count > 0)
                 {
-                    PaintDebug(e.Graphics, rt, v);
+                    var minx = Buffer.Min(_x => _x.Col);
+                    var maxx = Buffer.Max(_x => _x.Col);
+                    var miny = Buffer.Min(_x => _x.Row);
+                    var maxy = Buffer.Max(_x => _x.Row);
+                    var gapx = CurX - minx;
+                    var gapy = CurY - miny;
+
+                    int w = maxx - minx + 1;
+                    int h = maxy - miny + 1;
+
+                    Color csel = Color.Magenta;
+
+                    foreach (var v in Buffer)
+                    {
+                        var x = Convert.ToInt32(rtNumber.Right + ((v.Col + gapx) * curw));
+                        var y = Convert.ToInt32((double)rtContent.Y + ((double)(v.Row + gapy) * RowHeight)) - Convert.ToInt32(ScrollPosition);
+                        Rectangle rtRange = new Rectangle(x, y, Convert.ToInt32(curw), RowHeight);
+                        Color c = csel;
+                        if (gapx + maxx > ColumnCount - 1 || gapy + maxy > RowCount - 1) c = Color.Red;
+                        PaintItem(e.Graphics, Theme, c, rtRange, v, mp);
+                    }
                 }
-            }
-            #endregion
-            #endregion
+                #endregion
+
+                #region Border
+                p.DashStyle = DashStyle.Solid;
+                p.Color = Color.FromArgb(15, 15, 15);
+                Theme.DrawBox(e.Graphics, rtContent, NumberSectionColor, p.Color, RoundType.All, BoxStyle.Border);
+                e.Graphics.DrawLine(p, rtBox.Left, rtBox.Top, rtBox.Left, rtBox.Bottom);
+                e.Graphics.DrawLine(p, rtBox.Right, rtBox.Top, rtBox.Right, rtBox.Bottom);
+                #endregion
+
+                #region Rows
+                {
+                    var sidx = Convert.ToInt32(Math.Floor((double)ScrollPosition / (double)RowHeight));
+                    var rcnt = Convert.ToInt32(Math.Ceiling((double)rtBox.Height / (double)RowHeight));
+
+                    e.Graphics.SetClip(rtContent);
+
+                    for (int i = sidx - 1; i < sidx + rcnt; i++)
+                    {
+                        var y = Convert.ToInt32(-ScrollPosition + (i * RowHeight));
+                        var rtNumBox = new RectangleF(rtNumber.Left, y, rtNumber.Width, RowHeight);
+                        var rtRow = new RectangleF(rtNumber.Right, y, rtBox.Width, RowHeight);
+
+                        if (i >= 0 && i < Rows.Count)
+                        {
+                            var r = PaintRow(e.Graphics, Theme, Rows[i], ftb, rtNumBox, rtRow, curw, mp);
+                            if (r != null) after = r;
+                        }
+                    }
+
+                    e.Graphics.ResetClip();
+                }
+                #endregion
+
+                #region AfterDraw
+                if (after != null)
+                {
+                    var v = after.Item;
+                    var rt = after.Bounds;
+                    if (!Debug)
+                    {
+                        if (bCutBuffer && Buffer.Contains(v)) PaintItem(e.Graphics, Theme, Color.FromArgb(120, Color.White), rt, v, mp);
+                        else PaintItem(e.Graphics, Theme, Color.White, rt, v, mp);
+                    }
+                    else
+                    {
+                        PaintDebug(e.Graphics, Theme, rt, v, mp);
+                    }
+                }
+                #endregion
+                #endregion
+            });
 
             #region Dispose
             br.Dispose();
@@ -666,7 +619,7 @@ namespace LadderEditor.Controls
         #region OnMouseWheel
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            scroll.MouseWheel(e);
+            Areas((rtContent, rtNumber, rtBox, rtScroll) => { scroll.MouseWheel(e.Delta, rtScroll); });
             Invalidate();
             base.OnMouseWheel(e);
         }
@@ -677,48 +630,94 @@ namespace LadderEditor.Controls
             if (!DesignMode)
             {
                 Focus();
-
-                #region Scroll
-                if (Areas.ContainsKey("rtScroll") && Areas.ContainsKey("rtBox"))
+                Areas((rtContent, rtNumber, rtBox, rtScroll) =>
                 {
-                    scroll.MouseDown(e, Areas["rtScroll"]);
-                    if (scroll.TouchMode && CollisionTool.Check(Areas["rtBox"], e.Location)) scroll.TouchDown(e);
+                    #region Scroll
+                    scroll.MouseDown(e.X, e.Y, rtScroll);
+                    if (scroll.TouchMode && CollisionTool.Check(rtBox, e.Location)) scroll.TouchDown(e.X, e.Y);
+                    #endregion
 
-                    if (CollisionTool.Check(Areas["rtBox"], e.Location))
+                    #region Drag / Click
+                    if (CollisionTool.Check(rtBox, e.Location))
                     {
                         downPoint = e.Location;
                         downTime = DateTime.Now;
-                    }
-                }
-                #endregion
 
-                if (!Debug)
-                {
-                    if (e.Button == System.Windows.Forms.MouseButtons.Left)
-                    {
-                        var p = GetCurPos(e.X, e.Y);
-                        if (p.HasValue)
+                        if (!Debug)
                         {
-                            selprev = new Point(CurX, CurY);
-                            CurX = p.Value.X; CurY = p.Value.Y;
-                            seldown = new Point(CurX, CurY);
-                            selmove = new Point(CurX, CurY);
-                            selup = null;
+                            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                            {
+                                var p = GetCurPos(e.X, e.Y);
+                                if (p.HasValue)
+                                {
+                                    selprev = new Point(CurX, CurY);
+                                    CurX = p.Value.X; CurY = p.Value.Y;
+                                    seldown = new Point(CurX, CurY);
+                                    selmove = new Point(CurX, CurY);
+                                    selup = null;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                            {
+                                var p = GetCurPos(e.X, e.Y);
+                                if (p.HasValue)
+                                {
+                                    CurX = p.Value.X; CurY = p.Value.Y;
+                                }
+                            }
                         }
                     }
-                }
-                else
-                {
-                    if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                    #endregion
+
+                    #region Rows
                     {
-                        var p = GetCurPos(e.X, e.Y);
-                        if (p.HasValue)
+                        var sidx = Convert.ToInt32(Math.Floor((double)ScrollPosition / (double)RowHeight));
+                        var rcnt = Convert.ToInt32(Math.Ceiling((double)rtBox.Height / (double)RowHeight));
+
+                        using (var g = CreateGraphics())
                         {
-                            CurX = p.Value.X; CurY = p.Value.Y;
+                            for (int i = sidx - 1; i < sidx + rcnt; i++)
+                            {
+                                #region Var
+                                var y = Convert.ToInt32(-ScrollPosition + (i * RowHeight));
+                                var rtNum = new RectangleF(rtNumber.Left, y, rtNumber.Width, RowHeight);
+                                var rtRow = new RectangleF(rtNumber.Right, y, rtBox.Width, RowHeight);
+                                #endregion
+
+                                #region Bounds
+                                var szn = g.MeasureString("H", Font);
+                                var rtCell = rtRow;
+                                var rtMSG = new RectangleF(rtCell.Left, rtCell.Top, rtCell.Width, szn.Height + 6);
+                                var rtLDR = new RectangleF(rtCell.Left, rtMSG.Bottom, rtCell.Width, rtCell.Height - rtMSG.Height);
+                                var cpMSG = MathTool.CenterPoint(rtMSG);
+                                var cpLDR = MathTool.CenterPoint(rtLDR);
+
+                                var rtMSG_N = new RectangleF(rtNum.Left, rtNum.Top, rtNum.Width, szn.Height + 6);
+                                var rtLDR_N = new RectangleF(rtNum.Left, rtMSG.Bottom, rtNum.Width, rtNum.Height - rtMSG.Height);
+                                #endregion
+
+                                if (i >= 0 && i < Rows.Count)
+                                {
+                                    var row = Rows[i];
+                                    var rt = Util.MakeRectangleAlign(rtMSG_N, new Size(12, 12), DvContentAlignment.MiddleRight); rt.Offset(-5, 0);
+                                    var cell = row.Items.Where(x => x.Col == 0 && x.Code.StartsWith("#region")).FirstOrDefault();
+                                    if (cell != null)
+                                    {
+                                        if (CollisionTool.Check(rt, e.Location))
+                                        {
+                                            row.Expand = !row.Expand;
+                                            MakeRows();
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-
+                    #endregion
+                });
 
                 Invalidate();
             }
@@ -728,31 +727,38 @@ namespace LadderEditor.Controls
         #region OnMouseMove
         protected override void OnMouseMove(MouseEventArgs e)
         {
+            bool bInv = false;
+            
+            mp = e.Location;
+
             if (!DesignMode)
             {
-                #region Scroll
-                if (Areas.ContainsKey("rtScroll") && Areas.ContainsKey("rtBox"))
+                Areas((rtContent, rtNumber, rtBox, rtScroll) =>
                 {
-                    scroll.MouseMove(e, Areas["rtScroll"]);
-                    if (scroll.TouchMode) scroll.TouchMove(e);
-                    if (scroll.IsScrolling) Invalidate();
-                    if (scroll.TouchMode && scroll.IsTouchScrolling) Invalidate();
-                }
-                #endregion
+                    #region Scroll
+                    scroll.MouseMove(e.X, e.Y, rtScroll);
+                    if (scroll.TouchMode) scroll.TouchMove(e.X, e.Y);
+                    if (scroll.IsScrolling) bInv = true;
+                    if (scroll.TouchMode && scroll.IsTouchScrolling) bInv = true;
+                    #endregion
 
-                if (!Debug)
-                {
-                    #region Select Range
-                    if (seldown.HasValue)
+                    #region Drag / Click
+                    if (!Debug)
                     {
-                        var v = GetCurPos(e.X, e.Y);
-                        if (v.HasValue) selmove = v.Value;
-                        Invalidate();
+                        if (seldown.HasValue)
+                        {
+                            var v = GetCurPos(e.X, e.Y);
+                            if (v.HasValue) selmove = v.Value;
+                            bInv = true;
+                        }
                     }
                     #endregion
-                }
+
+                    if (GetCurPos(e.X, e.Y).HasValue) bInv = true;
+                });
             }
-            Invalidate();
+
+            if (bInv) Invalidate();
             base.OnMouseMove(e);
         }
         #endregion
@@ -761,52 +767,52 @@ namespace LadderEditor.Controls
         {
             if (!DesignMode)
             {
-                #region Scroll
-                if (Areas.ContainsKey("rtScroll") && Areas.ContainsKey("rtBox"))
+                Areas((rtContent, rtNumber, rtBox, rtScroll) =>
                 {
-                    var rtBox = Areas["rtBox"];
-                    var rtScroll = Areas["rtScroll"];
+                    #region Scroll
+                    scroll.MouseUp(e.X, e.Y);
+                    if (scroll.TouchMode && CollisionTool.Check(rtBox, e.Location)) scroll.TouchUp(e.X, e.Y);
+                    #endregion
 
-                    scroll.MouseUp(e);
-                    if (scroll.TouchMode && CollisionTool.Check(rtBox, e.Location)) scroll.TouchUp(e);
-                }
-                #endregion
-
-                if (!Debug)
-                {
-                    if (e.Button == System.Windows.Forms.MouseButtons.Left)
+                    #region Drag / Click
+                    if (!Debug)
                     {
-                        #region Select Range
-                        if (seldown.HasValue)
+                        if (e.Button == System.Windows.Forms.MouseButtons.Left)
                         {
-                            var v = GetCurPos(e.X, e.Y);
-                            if (v.HasValue)
-                            {
-                                selup = new Point(v.Value.X, v.Value.Y);
-                            }
-                        }
-                        if (seldown.HasValue && selup.HasValue && seldown.Value.X == selup.Value.X && seldown.Value.Y == selup.Value.Y)
-                        {
-                            if (ShiftKey)
+                            if (seldown.HasValue)
                             {
                                 var v = GetCurPos(e.X, e.Y);
                                 if (v.HasValue)
                                 {
-                                    seldown = new Point(selprev.X, selprev.Y);
                                     selup = new Point(v.Value.X, v.Value.Y);
-                                    selmove = null;
+                                }
+                                else
+                                {
+                                    selup = selmove = seldown = null;
                                 }
                             }
-                            else
+                            if (seldown.HasValue && selup.HasValue && seldown.Value.X == selup.Value.X && seldown.Value.Y == selup.Value.Y)
                             {
-                                selup = null; selmove = null; seldown = null;
+                                if (ShiftKey)
+                                {
+                                    var v = GetCurPos(e.X, e.Y);
+                                    if (v.HasValue)
+                                    {
+                                        seldown = new Point(selprev.X, selprev.Y);
+                                        selup = new Point(v.Value.X, v.Value.Y);
+                                        selmove = null;
+                                    }
+                                }
+                                else
+                                {
+                                    selup = null; selmove = null; seldown = null;
+                                }
                             }
+                            Invalidate();
                         }
-                        Invalidate();
-                        #endregion
                     }
-                }
-
+                    #endregion
+                });
                 Invalidate();
             }
             base.OnMouseUp(e);
@@ -945,7 +951,7 @@ namespace LadderEditor.Controls
                             case Keys.Enter:
                                 if (Buffer.Count > 0) Paste();
                                 break;
-                            #endregion
+                                #endregion
                         }
                     }
                 }
@@ -972,7 +978,7 @@ namespace LadderEditor.Controls
                     #region Find
                     if (e.Control && !e.Shift && !e.Alt && e.KeyCode == Keys.F)
                     {
-                        FormSearch frm = new FormSearch();
+                        FormSearch frm = new FormSearch() { StartPosition = FormStartPosition.CenterScreen };
                         frm.ShowSearch(this);
                     }
                     #endregion
@@ -982,10 +988,10 @@ namespace LadderEditor.Controls
                         if (Buffer.Count == 0 && (DateTime.Now - bufferSetTime).TotalSeconds >= 0.2)
                         {
                             var frm = FindForm() as DvForm;
-                            var v = GetLadder(CurY, CurX);
+                            var v = GetLadder(CurRow, CurX);
                             if (v != null)
                             {
-                               
+
                                 if (frm != null) frm.Block = true;
 
                                 var code = frmEdit.ShowLadderCode(v);
@@ -1000,7 +1006,7 @@ namespace LadderEditor.Controls
                                 var code = frmEdit.ShowLadderCode(v);
                                 if (code != null)
                                 {
-                                    AddLadderAction(new LadderItem() { Code = code, Col = CurX, Row = CurY, ItemType = LadderItemType.NONE, VerticalLine = false });
+                                    AddLadderAction(new LadderItem() { Code = code, Col = CurX, Row = CurRow, ItemType = LadderItemType.NONE, VerticalLine = false });
                                 }
 
                                 if (frm != null) frm.Block = false;
@@ -1017,32 +1023,60 @@ namespace LadderEditor.Controls
         #endregion
 
         #region Method
-        #region Get
-        #region GetContentRect
-        Rectangle GetContentRect() => Areas.ContainsKey("rtBox") ? Areas["rtBox"] : new Rectangle(0, 0, 1, 1);
+        #region Areas
+        void Areas(Action<RectangleF, RectangleF, RectangleF, RectangleF> act)
+        {
+            var scwh = Convert.ToInt32(Scroll.SC_WH);
+            var rtContent = GetContentBounds();
+            var rtNumber = new RectangleF(rtContent.Left, rtContent.Top, NumberBoxWidth, rtContent.Height);
+            var rtBox = new RectangleF(rtNumber.Right, rtContent.Top, rtContent.Width - scwh - NumberBoxWidth, rtContent.Height);
+            var rtScroll = new RectangleF(rtBox.Right, rtBox.Top, scwh, rtBox.Height);
+
+            act(rtContent, rtNumber, rtBox, rtScroll);
+        }
         #endregion
+
+        #region Get
         #region GetCurPos
         Point? GetCurPos(int x, int y)
         {
             Point? ret = null;
-            #region Rectangle
-            var rtContent = Areas["rtContent"];
-            var rtNumbox = Areas["rtNumber"];
-            var rtItemArea = Areas["rtBox"];
-            #endregion
-            if (CollisionTool.Check(rtItemArea, x, y))
-            {
-                double nColumnWidth = (double)(rtContent.Width - rtNumbox.Width) / (double)ColumnCount;
 
-                int px = Convert.ToInt32(Math.Floor((double)(x - rtNumbox.Right) / nColumnWidth));
-                int py = Convert.ToInt32(Math.Floor((double)(y + ScrollPosition) / RowHeight));
-                if (px >= 0 && px < ColumnCount && py >= 0 && py < RowCount) ret = new Point(px, py);
-            }
+            Areas((rtContent, rtNumber, rtBox, rtScroll) =>
+            {
+                //if (CollisionTool.Check(rtBox, x, y))
+                {
+                    double nColumnWidth = (double)(rtContent.Width - rtNumber.Width) / (double)ColumnCount;
+
+                    int px = Convert.ToInt32(Math.Floor((double)(x - rtNumber.Right) / nColumnWidth));
+                    int py = Math.Min(Convert.ToInt32(Math.Floor((double)(y + ScrollPosition) / RowHeight)), RowCount - 1);
+                    if (px >= 0 && px < ColumnCount && py >= 0 && py < RowCount)
+                    {
+                        ret = new Point(px, py);
+                    }
+                }
+            });
+
             return ret;
         }
         #endregion
         #region GetViewCount
-        int GetViewCount() => Areas["rtBox"].Height / RowHeight;
+        int GetViewCount()
+        {
+            int ret = 0;
+            Areas((rtContent, rtNumber, rtBox, rtScroll) =>
+            {
+                ret = Convert.ToInt32(rtBox.Height) / RowHeight;
+            });
+            return ret;
+        }
+        #endregion
+        #region GetLastRow
+        public int GetLastRow()
+        {
+            var last = Rows.Max(x => x.FoldingRows.Count > 0 ? x.FoldingRows.Max(x => x.Row) : x.Row);
+            return last;
+        }
         #endregion
         #region GetLadderDictionary
         public Dictionary<int, Dictionary<int, LadderItem>> GetLadderDictionary()
@@ -1083,9 +1117,12 @@ namespace LadderEditor.Controls
             if (seldown.HasValue && selup.HasValue)
             {
                 int minx = Math.Min(seldown.Value.X, selup.Value.X);
-                int miny = Math.Min(seldown.Value.Y, selup.Value.Y);
                 int maxx = Math.Max(seldown.Value.X, selup.Value.X);
-                int maxy = Math.Max(seldown.Value.Y, selup.Value.Y);
+
+                int _min = Math.Min(seldown.Value.Y, selup.Value.Y);
+                int _max = Math.Max(seldown.Value.Y, selup.Value.Y);
+                int miny = _min >= 0 && _min < Rows.Count ? (Rows[_min].FoldingRows.Count > 0 ? Rows[_min].FoldingRows.First().Row : Rows[_min].Row) : RowCount - 1;
+                int maxy = _max >= 0 && _max < Rows.Count ? (Rows[_max].FoldingRows.Count > 0 ? Rows[_max].FoldingRows.Last().Row : Rows[_max].Row) : RowCount - 1;
 
                 int w = maxx - minx + 1;
                 int h = maxy - miny + 1;
@@ -1094,7 +1131,7 @@ namespace LadderEditor.Controls
             }
             else if (!seldown.HasValue && !selup.HasValue)
             {
-                var v = GetLadder(CurY, CurX);
+                var v = GetLadder(CurRow, CurX);
                 if (v != null) ret.Add(v);
             }
             return ret;
@@ -1132,16 +1169,17 @@ namespace LadderEditor.Controls
         }
         #endregion
         #endregion
+
         #region Set
         #region SetItem
         #region Fill
-        void SetItemFill(int CurY, int CurX, LadderItemType ItemType, bool fillLeft)
+        void SetItemFill(int CurRow, int CurX, LadderItemType ItemType, bool fillLeft)
         {
             switch (ItemType)
             {
                 case LadderItemType.NONE:
                     {
-                        var itm = GetLadder(CurY, CurX);
+                        var itm = GetLadder(CurRow, CurX);
                         if (itm != null) DeleteLadderAction(itm);
                     }
                     break;
@@ -1155,30 +1193,30 @@ namespace LadderEditor.Controls
                 case LadderItemType.RISING_EDGE:
                 case LadderItemType.FALLING_EDGE:
                     {
-                        var itm = GetLadder(CurY, CurX);
+                        var itm = GetLadder(CurRow, CurX);
                         if (itm != null) EditLadderAction(itm, new LadderItem() { Code = itm.Code, Col = itm.Col, Row = itm.Row, ItemType = (fillLeft && itm.ItemType != LadderItemType.NONE ? itm.ItemType : ItemType), VerticalLine = itm.VerticalLine });
-                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurY, ItemType = ItemType, VerticalLine = false });
+                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurRow, ItemType = ItemType, VerticalLine = false });
                     }
                     break;
 
                 case LadderItemType.LINE_V:
                     {
-                        var itm = GetLadder(CurY, CurX);
+                        var itm = GetLadder(CurRow, CurX);
                         if (itm != null) EditLadderAction(itm, new LadderItem() { Code = itm.Code, Col = itm.Col, Row = itm.Row, ItemType = itm.ItemType, VerticalLine = !itm.VerticalLine });
-                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurY, ItemType = LadderItemType.NONE, VerticalLine = true });
+                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurRow, ItemType = LadderItemType.NONE, VerticalLine = true });
                     }
                     break;
             }
         }
         #endregion
         #region Point
-        void SetItemPoint(int CurY, int CurX, LadderItemType ItemType, bool fillLeft)
+        void SetItemPoint(int CurRow, int CurX, LadderItemType ItemType, bool fillLeft)
         {
             switch (ItemType)
             {
                 case LadderItemType.NONE:
                     {
-                        var itm = GetLadder(CurY, CurX);
+                        var itm = GetLadder(CurRow, CurX);
                         if (itm != null) DeleteLadderAction(itm);
                     }
                     break;
@@ -1192,7 +1230,7 @@ namespace LadderEditor.Controls
                 case LadderItemType.RISING_EDGE:
                 case LadderItemType.FALLING_EDGE:
                     {
-                        var itm = GetLadder(CurY, CurX);
+                        var itm = GetLadder(CurRow, CurX);
 
                         if (itm != null)
                         {
@@ -1205,15 +1243,15 @@ namespace LadderEditor.Controls
                                 EditLadderAction(itm, new LadderItem() { Code = !itm.Code.StartsWith("'") ? "" : itm.Code, Col = itm.Col, Row = itm.Row, ItemType = (fillLeft && itm.ItemType != LadderItemType.NONE ? itm.ItemType : ItemType), VerticalLine = itm.VerticalLine });
                             }
                         }
-                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurY, ItemType = ItemType, VerticalLine = false });
+                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurRow, ItemType = ItemType, VerticalLine = false });
                     }
                     break;
 
                 case LadderItemType.LINE_V:
                     {
-                        var itm = GetLadder(CurY, CurX);
+                        var itm = GetLadder(CurRow, CurX);
                         if (itm != null) EditLadderAction(itm, new LadderItem() { Code = itm.Code, Col = itm.Col, Row = itm.Row, ItemType = itm.ItemType, VerticalLine = !itm.VerticalLine });
-                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurY, ItemType = LadderItemType.NONE, VerticalLine = true });
+                        else AddLadderAction(new LadderItem() { Code = "", Col = CurX, Row = CurRow, ItemType = LadderItemType.NONE, VerticalLine = true });
                     }
                     break;
             }
@@ -1227,6 +1265,7 @@ namespace LadderEditor.Controls
         }
         #endregion
         #endregion
+
         #region Loop
         #region RegionLoop
         void RegionLoop(Point p1, Point p2, Action<int, int> f)
@@ -1254,44 +1293,60 @@ namespace LadderEditor.Controls
         }
         #endregion
         #endregion
+
         #region Action
+        #region EditLadderAction
         public void EditLadderAction(LadderItem olditem, LadderItem newitem)
         {
             actmgr.RecordAction(new LadderEditAction(this, olditem, newitem));
             if (LadderChanged != null) LadderChanged(this, null);
         }
+        #endregion
+        #region AddLadderAction
         public void AddLadderAction(LadderItem newitem)
         {
             actmgr.RecordAction(new LadderAddAction(this, newitem));
             if (LadderChanged != null) LadderChanged(this, null);
         }
+        #endregion
+        #region DeleteLadderAction
         public void DeleteLadderAction(LadderItem delitm)
         {
             actmgr.RecordAction(new LadderDeleteAction(this, delitm));
             if (LadderChanged != null) LadderChanged(this, null);
         }
         #endregion
+        #endregion
+
+        #region Paint
         #region PaintItem
-        #region Paint - Item
-        public void PaintItem(Graphics g, Color ItemColor, Rectangle rtBox, Rectangle rt, LadderItem itm, Point MousePosition)
+        public void PaintItem(Graphics g, DvTheme Theme, Color ItemColor, RectangleF rt, LadderItem itm, Point MousePosition)
         {
             #region Create
             SolidBrush br = new SolidBrush(ItemColor);
             Pen p = new Pen(ItemColor);
             StringFormat strfrm = new StringFormat() { LineAlignment = StringAlignment.Center, Alignment = StringAlignment.Center };
-            StringFormat strfrm2 = new StringFormat() { Trimming = StringTrimming.EllipsisCharacter };
+            StringFormat strfrm2 = new StringFormat() { Trimming = StringTrimming.EllipsisCharacter, Alignment = StringAlignment.Center };
             #endregion
 
-            #region Pos Set
-            int nw = 18, nh = 12;
-            int HalfY = rt.Top + ((RowHeight / 3) * 2);
-            int HalfX = rt.X + (rt.Width / 2);
-            int stx = rt.X + (rt.Width / 2 - nw / 2);
-            int edx = stx + nw;
-            int sty = HalfY - (nh / 2);
-            int edy = sty + nh;
-            g.SmoothingMode = SmoothingMode.HighSpeed;
+            #region Bounds
+            var szn = g.MeasureString("H", Font);
+            var rtCell = rt;
+            var rtMSG = new RectangleF(rtCell.Left, rtCell.Top, rtCell.Width, szn.Height + 4);
+            var rtLDR = new RectangleF(rtCell.Left, rtMSG.Bottom, rtCell.Width, rtCell.Height - rtMSG.Height);
+            var rtLBX = Util.MakeRectangleAlign(rtLDR, new SizeF(20, 12), DvContentAlignment.MiddleCenter);
+            var cpMSG = MathTool.CenterPoint(rtMSG);
+            var cpLDR = MathTool.CenterPoint(rtLDR);
+
+            float HalfY = cpLDR.Y;
+            float HalfX = cpLDR.X;
+            float stx = rtLBX.Left;
+            float edx = rtLBX.Right;
+            float sty = rtLBX.Top;
+            float edy = rtLBX.Bottom;
+            float nh = rtLBX.Height;
             #endregion
+
             #region Editor
             switch (itm.ItemType)
             {
@@ -1299,8 +1354,8 @@ namespace LadderEditor.Controls
                     #region IN A
                     {
                         p.Width = 1;
-                        g.DrawLine(p, rt.X, HalfY, stx, HalfY);
-                        g.DrawLine(p, rt.Right, HalfY, edx, HalfY);
+                        g.DrawLine(p, rt.X, cpLDR.Y, rtLBX.Left, cpLDR.Y);
+                        g.DrawLine(p, rt.Right, cpLDR.Y, rtLBX.Right, cpLDR.Y);
 
                         p.Width = 2;
                         g.DrawLine(p, stx, sty, stx, edy);
@@ -1336,15 +1391,15 @@ namespace LadderEditor.Controls
                 case LadderItemType.OUT_COIL:
                     #region OUT_COIL
                     {
-                        int isz = 30;
-                        int isx = rt.Width / 2 - isz / 2;
+                        var isz = 30F;
+                        var isx = rt.Width / 2F - isz / 2F;
                         p.Width = 1;
                         g.DrawLine(p, rt.X, HalfY, rt.X + isx, HalfY);
 
                         g.SmoothingMode = SmoothingMode.HighQuality;
                         p.Width = 2;
-                        g.DrawArc(p, new Rectangle(rt.Left + isx, sty, nh, nh), -(90 + 25), -(180 - 50));
-                        g.DrawArc(p, new Rectangle(rt.Right - nh - isx, sty, nh, nh), -(90 - 25), (180 - 50));
+                        g.DrawArc(p, new RectangleF(rt.Left + isx, sty, nh, nh), -(90 + 25), -(180 - 50));
+                        g.DrawArc(p, new RectangleF(rt.Right - nh - isx, sty, nh, nh), -(90 - 25), (180 - 50));
                     }
                     #endregion
                     break;
@@ -1352,8 +1407,8 @@ namespace LadderEditor.Controls
                     #region OUT_FUNC
                     {
                         int gp = 20;
-                        int isz = rt.Width - gp;
-                        int isx = rt.Width / 2 - isz / 2;
+                        var isz = rt.Width - gp;
+                        var isx = rt.Width / 2F - isz / 2F;
                         p.Width = 1;
                         g.DrawLine(p, rt.X, HalfY, rt.X + (gp / 2), HalfY);
 
@@ -1361,7 +1416,7 @@ namespace LadderEditor.Controls
                         if (itm.Code != null && itm.Code.Split(' ').FirstOrDefault() == "MCS")
                         {
                             p.Width = 2;
-                            Rectangle rtmd = new Rectangle(rt.X + isx, sty, isz, nh);
+                            RectangleF rtmd = new RectangleF(rt.X + isx, sty, isz, nh);
                             g.DrawLine(p, rtmd.Left, rtmd.Top + 1, rtmd.Right, rtmd.Top + 1);
                             g.DrawLine(p, rtmd.Left, rtmd.Top, rtmd.Left, rtmd.Bottom);
                             g.DrawLine(p, rtmd.Right, rtmd.Top, rtmd.Right, rtmd.Bottom);
@@ -1369,7 +1424,7 @@ namespace LadderEditor.Controls
                         else if (itm.Code != null && itm.Code.Split(' ').FirstOrDefault() == "MCSCLR")
                         {
                             p.Width = 2;
-                            Rectangle rtmd = new Rectangle(rt.X + isx, sty, isz, nh);
+                            RectangleF rtmd = new RectangleF(rt.X + isx, sty, isz, nh);
                             g.DrawLine(p, rtmd.Left, rtmd.Bottom - 1, rtmd.Right, rtmd.Bottom - 1);
                             g.DrawLine(p, rtmd.Left, rtmd.Top, rtmd.Left, rtmd.Bottom);
                             g.DrawLine(p, rtmd.Right, rtmd.Top, rtmd.Right, rtmd.Bottom);
@@ -1377,7 +1432,7 @@ namespace LadderEditor.Controls
                         else
                         {
                             p.Width = 2;
-                            Rectangle rtmd = new Rectangle(rt.X + isx, sty, isz, nh);
+                            RectangleF rtmd = new RectangleF(rt.X + isx, sty, isz, nh);
                             g.DrawLine(p, rtmd.Left, rtmd.Top, rtmd.Left, rtmd.Bottom);
                             g.DrawLine(p, rtmd.Right, rtmd.Top, rtmd.Right, rtmd.Bottom);
 
@@ -1443,38 +1498,42 @@ namespace LadderEditor.Controls
 
             if (itm.Code != null && itm.Code != "")
             {
-                string str = itm.ItemType == LadderItemType.OUT_FUNC && itm.Code.StartsWith("{") ? "{ ... }" : itm.Code;
-
-                SizeF sz = g.MeasureString(str, Font);
-                int BtmY = Convert.ToInt32(sty - 5);
-                int nx = Convert.ToInt32(HalfX - (sz.Width / 2));
-                if (str.Length >= 2 && str.Substring(0, 1) == "'" && str.Substring(0, 2) != "''") nx = Convert.ToInt32(rt.X + (rt.Width / 8));
-                int ny = Convert.ToInt32(BtmY - sz.Height);
-                int LineWidth = 41;
-                if (nx < LineWidth) nx = LineWidth;
-                nx = Math.Max(nx, rt.Left);
+                var str = itm.ItemType == LadderItemType.OUT_FUNC && itm.Code.StartsWith("{") ? "{ ... }" : itm.Code;
+                var sz = g.MeasureString(str, Font);
+                var bMSG = false;
 
                 br.Color = ItemColor;
-                if (str.Length > 0 && str.StartsWith("'") && ItemColor != Color.Magenta) br.Color = Color.Lime;
+                if (str.Length > 0 && str.StartsWith("'") && ItemColor != Color.Magenta) { br.Color = Color.Lime; bMSG = true; }
+                if (str.Length > 0 && str.StartsWith("#") && itm.Col == 0 && ItemColor != Color.Magenta) { br.Color = Color.Orange; bMSG = true; }
 
-                if (sz.Width > rt.Width && CollisionTool.Check(rt, MousePosition))
+                if (bMSG)
                 {
-                    var old = br.Color;
-
-                    var rtb = MathTool.MakeRectangle(new Rectangle(rt.X, ny - 2, rt.Width, 14), new Size(Convert.ToInt32(sz.Width + 10), 24));
-                    if (rtb.Right > this.Width) rtb.X = this.Width - rtb.Width - 1;
-
-                    var rtm = MathTool.MakeRectangle(rtb, new Size(rtb.Width, 14)); rtm.Offset(0, 3);
-
-                    p.Width = 1;
-                    br.Color = Color.FromArgb(30, 30, 30); g.FillRoundRectangle(br, rtb, 5);
-                    p.Color = Color.FromArgb(90, 90, 90); g.DrawRoundRectangle(p, rtb, 5);
-                 
-                    br.Color = old; g.DrawString(itm.Code, Font, br, rtm, strfrm);
+                    var rtm = new RectangleF(rtMSG.Left + 10, rtMSG.Top, sz.Width + 10, rtMSG.Height);
+                    strfrm.Alignment = StringAlignment.Near;
+                    g.DrawString(str, Font, br, rtm, strfrm);
                 }
                 else
-                {
-                    g.DrawString(str, Font, br, new Rectangle(nx, ny, rt.Right - nx, 14), strfrm2);
+                { 
+                    if (sz.Width > rt.Width && CollisionTool.Check(rtCell, MousePosition))
+                    {
+                        var old = br.Color;
+
+                        var rtb = Util.MakeRectangleAlign(rtMSG, new SizeF(sz.Width + 10, rtMSG.Height + 4), DvContentAlignment.MiddleCenter); rtb.Offset(1, 0);
+                        var rtm = Util.MakeRectangleAlign(rtMSG, new SizeF(sz.Width + 10, rtMSG.Height), DvContentAlignment.MiddleCenter); rtm.Offset(0, 0);
+                        if (rtb.Right > this.Width) rtb.X = this.Width - rtb.Width - 1;
+
+                        p.Width = 1;
+                        br.Color = Color.FromArgb(30, 30, 30); g.FillRoundRectangle(br, Util.INT(rtb), 5);
+                        p.Color = Color.FromArgb(90, 90, 90); g.DrawRoundRectangle(p, Util.INT(rtb), 5);
+
+                        br.Color = old;
+                        g.DrawString(itm.Code, Font, br, rtm, strfrm);
+                    }
+                    else
+                    {
+                        var rtm = MathTool.MakeRectangle(rtMSG, new SizeF(rt.Width, sz.Height + 0)); rtm.Offset(0, 0);
+                        g.DrawString(str, Font, br, rtm, strfrm2);
+                    }
                 }
             }
             #endregion
@@ -1522,27 +1581,34 @@ namespace LadderEditor.Controls
             #endregion
         }
         #endregion
-        #region Paint - Debug
-        public void PaintDebug(Graphics g, Rectangle rt, LadderItem itm)
+        #region PaintDebug
+        public void PaintDebug(Graphics g, DvTheme Theme, RectangleF rt, LadderItem itm, Point MousePosition)
         {
             #region Create
             SolidBrush br = new SolidBrush(Color.White);
             Pen p = new Pen(Color.White);
             StringFormat strfrm = new StringFormat() { LineAlignment = StringAlignment.Center, Alignment = StringAlignment.Center };
-            StringFormat strfrm2 = new StringFormat() { Trimming = StringTrimming.EllipsisCharacter };
+            StringFormat strfrm2 = new StringFormat() { Trimming = StringTrimming.EllipsisCharacter, Alignment = StringAlignment.Center };
             #endregion
 
-            #region Pos Set
-            int nw = 18, nh = 12;
-            int HalfY = rt.Top + ((RowHeight / 3) * 2);
-            int HalfX = rt.X + (rt.Width / 2);
-            int stx = rt.X + (rt.Width / 2 - nw / 2);
-            int edx = stx + nw;
-            int sty = HalfY - (nh / 2);
-            int edy = sty + nh;
+            #region Bounds
+            var szn = g.MeasureString("H", Font);
+            var rtCell = rt;
+            var rtMSG = new RectangleF(rtCell.Left, rtCell.Top, rtCell.Width, szn.Height + 4);
+            var rtLDR = new RectangleF(rtCell.Left, rtMSG.Bottom, rtCell.Width, rtCell.Height - rtMSG.Height);
+            var rtLBX = Util.MakeRectangleAlign(rtLDR, new SizeF(20, 12), DvContentAlignment.MiddleCenter);
+            var cpMSG = MathTool.CenterPoint(rtMSG);
+            var cpLDR = MathTool.CenterPoint(rtLDR);
 
-            g.SmoothingMode = SmoothingMode.HighSpeed;
+            float HalfY = cpLDR.Y;
+            float HalfX = cpLDR.X;
+            float stx = rtLBX.Left;
+            float edx = rtLBX.Right;
+            float sty = rtLBX.Top;
+            float edy = rtLBX.Bottom;
+            float nh = rtLBX.Height;
             #endregion
+
             #region Editor
             switch (itm.ItemType)
             {
@@ -1564,7 +1630,7 @@ namespace LadderEditor.Controls
                             var old = g.SmoothingMode;
                             g.SmoothingMode = SmoothingMode.HighSpeed;
                             br.Color = Color.Lime;
-                            g.FillRectangle(br, new Rectangle(stx + 4, sty + 2, (edx - 5) - (stx + 4), (edy - 2) - (sty + 2)));
+                            g.FillRectangle(br, new RectangleF(stx + 4, sty + 2, (edx - 5) - (stx + 4), (edy - 2) - (sty + 2)));
                             g.SmoothingMode = old;
                         }
                     }
@@ -1588,7 +1654,7 @@ namespace LadderEditor.Controls
                             var old = g.SmoothingMode;
                             g.SmoothingMode = SmoothingMode.HighSpeed;
                             br.Color = Color.Lime;
-                            g.FillRectangle(br, new Rectangle(stx + 4, sty + 2, (edx - 5) - (stx + 4), (edy - 2) - (sty + 2)));
+                            g.FillRectangle(br, new RectangleF(stx + 4, sty + 2, (edx - 5) - (stx + 4), (edy - 2) - (sty + 2)));
                             g.SmoothingMode = old;
                         }
 
@@ -1610,23 +1676,23 @@ namespace LadderEditor.Controls
                 case LadderItemType.OUT_COIL:
                     #region OUT_COIL
                     {
-                        int isz = 30;
-                        int isx = rt.Width / 2 - isz / 2;
+                        float isz = 30;
+                        float isx = rt.Width / 2F - isz / 2F;
                         p.Width = 1;
                         p.Color = (itm.PrevMonitorV) ? Color.Red : Color.White;
                         g.DrawLine(p, rt.X, HalfY, rt.X + isx, HalfY);
 
                         g.SmoothingMode = SmoothingMode.HighQuality;
                         p.Width = 2;
-                        g.DrawArc(p, new Rectangle(rt.Left + isx, sty, nh, nh), -(90 + 25), -(180 - 50));
-                        g.DrawArc(p, new Rectangle(rt.Right - nh - isx, sty, nh, nh), -(90 - 25), (180 - 50));
+                        g.DrawArc(p, new RectangleF(rt.Left + isx, sty, nh, nh), -(90 + 25), -(180 - 50));
+                        g.DrawArc(p, new RectangleF(rt.Right - nh - isx, sty, nh, nh), -(90 - 25), (180 - 50));
 
                         if (itm.Monitor)
                         {
                             var old = g.SmoothingMode;
                             g.SmoothingMode = SmoothingMode.HighQuality;
                             br.Color = Color.Lime;
-                            g.FillEllipse(br, MathTool.MakeRectangle(new Point(HalfX, HalfY), 10));
+                            g.FillEllipse(br, MathTool.MakeRectangle(new PointF(HalfX, HalfY), 10));
                             g.SmoothingMode = old;
                         }
                     }
@@ -1636,8 +1702,8 @@ namespace LadderEditor.Controls
                     #region OUT_FUNC
                     {
                         int gp = 20;
-                        int isz = rt.Width - gp;
-                        int isx = rt.Width / 2 - isz / 2;
+                        var isz = rt.Width - gp;
+                        var isx = rt.Width / 2F - isz / 2F;
                         p.Width = 1;
                         p.Color = (itm.PrevMonitorV) ? Color.Red : Color.White;
                         g.DrawLine(p, rt.X, HalfY, rt.X + (gp / 2), HalfY);
@@ -1646,7 +1712,7 @@ namespace LadderEditor.Controls
                         if (itm.Code != null && itm.Code.Split(' ').FirstOrDefault() == "MCS")
                         {
                             p.Width = 2;
-                            Rectangle rtmd = new Rectangle(rt.X + isx, sty, isz, nh);
+                            var rtmd = new RectangleF(rt.X + isx, sty, isz, nh);
                             g.DrawLine(p, rtmd.Left, rtmd.Top + 1, rtmd.Right, rtmd.Top + 1);
                             g.DrawLine(p, rtmd.Left, rtmd.Top, rtmd.Left, rtmd.Bottom);
                             g.DrawLine(p, rtmd.Right, rtmd.Top, rtmd.Right, rtmd.Bottom);
@@ -1654,22 +1720,22 @@ namespace LadderEditor.Controls
                         else if (itm.Code != null && itm.Code.Split(' ').FirstOrDefault() == "MCSCLR")
                         {
                             p.Width = 2;
-                            Rectangle rtmd = new Rectangle(rt.X + isx, sty, isz, nh);
+                            var rtmd = new RectangleF(rt.X + isx, sty, isz, nh);
                             g.DrawLine(p, rtmd.Left, rtmd.Bottom - 1, rtmd.Right, rtmd.Bottom - 1);
                             g.DrawLine(p, rtmd.Left, rtmd.Top, rtmd.Left, rtmd.Bottom);
                             g.DrawLine(p, rtmd.Right, rtmd.Top, rtmd.Right, rtmd.Bottom);
                         }
                         else
                         {
-                            Rectangle rtmd = new Rectangle(rt.X + isx, sty, isz, nh);
+                            var rtmd = new RectangleF(rt.X + isx, sty, isz, nh);
 
                             if (itm.Monitor)
                             {
                                 var old = g.SmoothingMode;
                                 g.SmoothingMode = SmoothingMode.HighSpeed;
 
-                                var rtmd2txt = new Rectangle(rtmd.X + 10, rtmd.Y + 1, rtmd.Width - 21, rtmd.Height + 2);
-                                var rtmd2 = new Rectangle(rtmd.X + 10, rtmd.Y - 2, rtmd.Width - 21, rtmd.Height + 2);
+                                var rtmd2txt = new RectangleF(rtmd.X + 10, rtmd.Y + 1, rtmd.Width - 21, rtmd.Height + 2);
+                                var rtmd2 = new RectangleF(rtmd.X + 10, rtmd.Y - 2, rtmd.Width - 21, rtmd.Height + 2);
                                 br.Color = Color.FromArgb(50, Color.Lime);
                                 g.FillRectangle(br, rtmd2);
 
@@ -1771,38 +1837,42 @@ namespace LadderEditor.Controls
 
             if (itm.Code != null && itm.Code != "")
             {
-                string str = itm.ItemType == LadderItemType.OUT_FUNC && itm.Code.StartsWith("{") ? "{ ... }" : itm.Code;
-
-                SizeF sz = g.MeasureString(str, Font);
-                int BtmY = Convert.ToInt32(sty - 5);
-                int nx = Convert.ToInt32(HalfX - (sz.Width / 2));
-                if (str.Length >= 2 && str.Substring(0, 1) == "'" && str.Substring(0, 2) != "''") nx = Convert.ToInt32(rt.X + (rt.Width / 8));
-                int ny = Convert.ToInt32(BtmY - sz.Height);
-                int LineWidth = 41;
-                if (nx < LineWidth) nx = LineWidth;
-                nx = Math.Max(nx, rt.Left);
+                var str = itm.ItemType == LadderItemType.OUT_FUNC && itm.Code.StartsWith("{") ? "{ ... }" : itm.Code;
+                var sz = g.MeasureString(str, Font);
+                var bMSG = false;
 
                 br.Color = Color.White;
-                if (str.Length > 0 && str.StartsWith("'")) br.Color = Color.Lime;
+                if (str.Length > 0 && str.StartsWith("'")) { br.Color = Color.Lime; bMSG = true; }
+                if (str.Length > 0 && str.StartsWith("#") && itm.Col == 0) { br.Color = Color.Orange; bMSG = true; }
 
-                if (sz.Width > rt.Width && CollisionTool.Check(rt, MousePosition))
+                if (bMSG)
                 {
-                    var old = br.Color;
-
-                    var rtb = MathTool.MakeRectangle(new Rectangle(rt.X, ny - 2, rt.Width, 14), new Size(Convert.ToInt32(sz.Width + 10), 24));
-                    if (rtb.Right > this.Width) rtb.X = this.Width - rtb.Width - 1;
-
-                    var rtm = MathTool.MakeRectangle(rtb, new Size(rtb.Width, 14)); rtm.Offset(0, 3);
-
-                    p.Width = 1;
-                    br.Color = Color.FromArgb(30, 30, 30); g.FillRoundRectangle(br, rtb, 5);
-                    p.Color = Color.FromArgb(90, 90, 90); g.DrawRoundRectangle(p, rtb, 5);
-
-                    br.Color = old; g.DrawString(itm.Code, Font, br, rtm, strfrm);
+                    var rtm = new RectangleF(rtMSG.Left + 10, rtMSG.Top, sz.Width + 10, rtMSG.Height);
+                    strfrm.Alignment = StringAlignment.Near;
+                    g.DrawString(str, Font, br, rtm, strfrm);
                 }
                 else
                 {
-                    g.DrawString(str, Font, br, new Rectangle(nx, ny, rt.Right - nx, 14), strfrm2);
+                    if (sz.Width > rt.Width && CollisionTool.Check(rtCell, MousePosition))
+                    {
+                        var old = br.Color;
+
+                        var rtb = Util.MakeRectangleAlign(rtMSG, new SizeF(sz.Width + 10, rtMSG.Height + 4), DvContentAlignment.MiddleCenter); rtb.Offset(1, 0);
+                        var rtm = Util.MakeRectangleAlign(rtMSG, new SizeF(sz.Width + 10, rtMSG.Height), DvContentAlignment.MiddleCenter); rtm.Offset(0, 0);
+                        if (rtb.Right > this.Width) rtb.X = this.Width - rtb.Width - 1;
+
+                        p.Width = 1;
+                        br.Color = Color.FromArgb(30, 30, 30); g.FillRoundRectangle(br, rtb, 5);
+                        p.Color = Color.FromArgb(90, 90, 90); g.DrawRoundRectangle(p, rtb, 5);
+
+                        br.Color = old;
+                        g.DrawString(itm.Code, Font, br, rtm, strfrm);
+                    }
+                    else
+                    {
+                        var rtm = MathTool.MakeRectangle(rtMSG, new SizeF(rt.Width, sz.Height + 0)); rtm.Offset(0, 0);
+                        g.DrawString(str, Font, br, rtm, strfrm2);
+                    }
                 }
             }
             #endregion
@@ -1853,7 +1923,7 @@ namespace LadderEditor.Controls
                     {
                         str = itm.WatchF.ToString();
                     }
-                    else if(addr.StartsWith("P")|| addr.StartsWith("M"))
+                    else if (addr.StartsWith("P") || addr.StartsWith("M"))
                     {
                         str = itm.Monitor ? "ON" : "OFF";
                     }
@@ -1867,9 +1937,9 @@ namespace LadderEditor.Controls
                         }
                     }
                 }
-                
-                var rtwatch = new Rectangle(rt.X + 10, sty, rt.Width - 20, 18);
-                var rtwatchtxt = new Rectangle(rt.X + 10, sty + 3, rt.Width - 20, 18);
+
+                var rtwatch = rtLDR; rtwatch.Inflate(-1, -1); 
+                var rtwatchtxt = rtLDR; rtwatchtxt.Inflate(-1, -1);
 
                 p.Color = Color.Lime; p.Width = 1;
                 g.DrawRectangle(p, rtwatch);
@@ -1878,8 +1948,9 @@ namespace LadderEditor.Controls
                 g.FillRectangle(br, rtwatch);
 
                 br.Color = Color.White;
+                strfrm.Alignment = StringAlignment.Center;
                 g.DrawString(str, Font, br, rtwatchtxt, strfrm);
-             
+
             }
             #endregion
 
@@ -1891,15 +1962,141 @@ namespace LadderEditor.Controls
             #endregion
         }
         #endregion
+        #region PaintRow
+        AfterItem PaintRow(Graphics g, DvTheme Theme, LadderRow row, Font FontBold, RectangleF rtNum, RectangleF rtRow, double CurW, Point MousePosition)
+        {
+            AfterItem ret = null;
+
+            #region Bounds
+            var szn = g.MeasureString("H", Font);
+            var rtCell = rtRow;
+            var rtMSG = new RectangleF(rtCell.Left, rtCell.Top, rtCell.Width, szn.Height + 6);
+            var rtLDR = new RectangleF(rtCell.Left, rtMSG.Bottom, rtCell.Width, rtCell.Height - rtMSG.Height);
+            var cpMSG = MathTool.CenterPoint(rtMSG);
+            var cpLDR = MathTool.CenterPoint(rtLDR);
+
+            var rtMSG_N = new RectangleF(rtNum.Left, rtNum.Top, rtNum.Width, szn.Height + 6);
+            var rtLDR_N = new RectangleF(rtNum.Left, rtMSG.Bottom, rtNum.Width, rtNum.Height - rtMSG.Height);
+            #endregion
+
+            #region Number
+            {
+                var ft = row.Row == CurRow ? FontBold : Font;
+                var c = row.Row == CurRow ? Color.White : Color.FromArgb(120, 120, 120);
+                Theme.DrawText(g, (row.Row + 1).ToString(), ft, c, rtNum);
+
+                var cell = row.Items.Where(x => x.Col == 0 && x.Code.StartsWith("#region")).FirstOrDefault();
+                if (cell != null)
+                {
+                    var rt = Util.MakeRectangleAlign(rtMSG_N, new Size(12, 12), DvContentAlignment.MiddleRight); rt.Offset(-5, 0);
+                    var cp = MathTool.CenterPoint(rt);
+                    Theme.DrawBox(g, rt, Color.FromArgb(60, 60, 60), c, RoundType.Rect, row.Expand ? BoxStyle.Border : BoxStyle.Border | BoxStyle.Fill);
+                    using (var p = new Pen(c))
+                    {
+                        g.DrawLine(p, rt.Left, cp.Y, rt.Right, cp.Y);
+                        if (!row.Expand) g.DrawLine(p, cp.X, rt.Top, cp.X, rt.Bottom);
+                    }
+                }
+            }
+            #endregion
+
+            #region Item
+            if (row.FoldingRows.Count > 0)
+            {
+                #region Folding
+                var c = Color.FromArgb(180, 180, 180);
+                var str = row.Items[0].Code.Substring(8);
+                var sz = g.MeasureString(str, Font);
+                var rt = Util.INT(Util.MakeRectangleAlign(rtMSG, new SizeF(sz.Width + 6, sz.Height + 4), DvContentAlignment.MiddleLeft)); rt.Offset(10, 0);
+                Theme.DrawText(g, str, Font, c, rt);
+                Theme.DrawBox(g, rt, c, c, RoundType.Rect, BoxStyle.Border);
+                #endregion
+
+                #region Cursor
+                if (row.Row == CurRow)
+                {
+                    var rtCur = Util.INT(rtRow);
+                    rtCur.Inflate(-1, -1);
+
+                    using (var p = new Pen(Color.Black))
+                    {
+                        p.Color = Focused ? Color.Cyan : Color.FromArgb(60, Color.Cyan);
+                        p.Width = 1;
+                        p.DashStyle = DashStyle.Solid;
+                        g.DrawRectangle(p, rtCur);
+                    }
+                }
+                #endregion
+            }
+            else
+            {
+                #region Cells
+                foreach (var v in row.Items)
+                {
+                    var x = Convert.ToInt32(rtNum.Right + (v.Col * CurW));
+                    var rt = new RectangleF(x, rtRow.Y, Convert.ToInt32(CurW), rtRow.Height);
+                    var sz = g.MeasureString(v.Code, Font);
+
+                    if (CollisionTool.Check(rt, MousePosition) && (rt.Width < sz.Width))
+                    {
+                        ret = new AfterItem() { Item = v, Bounds = rt };
+                    }
+                    else
+                    {
+                        if (!Debug)
+                        {
+                            if (bCutBuffer && Buffer.Contains(v)) PaintItem(g, Theme, Color.FromArgb(120, Color.White), rt, v, MousePosition);
+                            else PaintItem(g, Theme, Color.White, rt, v, MousePosition);
+                        }
+                        else
+                        {
+                            PaintDebug(g, Theme, rt, v, MousePosition);
+                        }
+                    }
+                }
+                #endregion
+
+                #region Cursor
+                if (row.Row == CurRow)
+                {
+                    var rtCur = Util.INT(new RectangleF(rtRow.X + Convert.ToSingle(CurX * CurW), rtRow.Y, Convert.ToInt32(CurW), RowHeight));
+                    rtCur.Inflate(-1, -1);
+
+                    using (var p = new Pen(Color.Black))
+                    {
+                        p.Color = Focused ? Color.Cyan : Color.FromArgb(60, Color.Cyan);
+                        p.Width = 1;
+                        p.DashStyle = DashStyle.Solid;
+                        g.DrawRectangle(p, rtCur);
+                    }
+                }
+                #endregion
+            }
+            #endregion
+
+            return ret;
+        }
         #endregion
+        #endregion
+
         #region Move
         #region Normal
         void MoveLeft() { CurX--; }
         void MoveRight() { CurX++; }
         void MoveUp() { CurY--; }
-        void MoveDown() { CurY++; }
+        void MoveDown()
+        {
+            var nc = 1;
+            if (CurY + nc >= Rows.Count) RowCount = RowCount + nc;
+            CurY += nc;
+        }
         void MovePageUp() { CurY -= GetViewCount(); }
-        void MovePageDown() { CurY += GetViewCount(); }
+        void MovePageDown()
+        {
+            var nc = GetViewCount();
+            if (CurY + nc >= Rows.Count) RowCount = RowCount + nc;
+            CurY += nc;
+        }
         void MoveHome() { CurX = 0; }
         void MoveEnd() { CurX = ColumnCount - 1; }
         #endregion
@@ -2041,83 +2238,104 @@ namespace LadderEditor.Controls
         void MoveControlDown() { if (Ladders.Count > 0) CurY = Ladders.Max(x => x.Row); else CurY = RowCount - 1; }
         #endregion
         #endregion
+
         #region Item
         #region NONE
         public void ItemNONE()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                if (seldown.HasValue && selup.HasValue)
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    using (var tr = actmgr.CreateTransaction())
+                    if (seldown.HasValue && selup.HasValue)
                     {
-                        RegionLoop(seldown.Value, selup.Value, (row, col) => { SetItemFill(row, col, LadderItemType.NONE, false); });
-                    }
+                        using (var tr = actmgr.CreateTransaction())
+                        {
+                            var pdown = new Point(seldown.Value.X, DicRows[seldown.Value.Y].Row);
+                            var pup = new Point(selup.Value.X, DicRows[seldown.Value.Y].Row);
+                            RegionLoop(pdown, pup, (row, col) => { SetItemFill(row, col, LadderItemType.NONE, false); });
+                        }
 
-                    bCutBuffer = false;
-                    seldown = selmove = selup = null;
-                    Invalidate();
+                        bCutBuffer = false;
+                        seldown = selmove = selup = null;
+                        Invalidate();
+                    }
+                    else if (!seldown.HasValue && !selup.HasValue)
+                    {
+                        SetItemPoint(CurRow, CurX, LadderItemType.NONE, false);
+                        MoveRight();
+                    }
                 }
-                else if (!seldown.HasValue && !selup.HasValue)
-                {
-                    SetItemPoint(CurY, CurX, LadderItemType.NONE, false);
-                    CurX++;
-                }
-             }
+            }
         }
         #endregion
         #region IN_A
         public void ItemIN_A()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.IN_A, false);
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.IN_A, false);
+                    }
+                    MoveRight();
                 }
-                CurX++;
             }
         }
         #endregion
         #region IN_B
         public void ItemIN_B()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.IN_B, false);
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.IN_B, false);
+                    }
+                    MoveRight();
                 }
-                CurX++;
             }
         }
         #endregion
         #region LINE_H
         public void ItemLINE_H()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                if (seldown.HasValue && selup.HasValue)
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    using (var tr = actmgr.CreateTransaction())
+                    if (seldown.HasValue && selup.HasValue)
                     {
-                        RegionLoop(seldown.Value, selup.Value, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    }
+                        using (var tr = actmgr.CreateTransaction())
+                        {
+                            var pdown = new Point(seldown.Value.X, DicRows[seldown.Value.Y].Row);
+                            var pup = new Point(selup.Value.X, DicRows[seldown.Value.Y].Row);
+                            RegionLoop(pdown, pup, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        }
 
-                    bCutBuffer = false;
-                    seldown = selmove = selup = null;
-                    Invalidate();
-                }
-                else if (!seldown.HasValue && !selup.HasValue)
-                {
-                    using (var tr = actmgr.CreateTransaction())
-                    {
-                        HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                        SetItemPoint(CurY, CurX, LadderItemType.LINE_H, false);
+                        bCutBuffer = false;
+                        seldown = selmove = selup = null;
+                        Invalidate();
                     }
-                    CurX++;
+                    else if (!seldown.HasValue && !selup.HasValue)
+                    {
+                        using (var tr = actmgr.CreateTransaction())
+                        {
+                            HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                            SetItemPoint(CurRow, CurX, LadderItemType.LINE_H, false);
+                        }
+                        MoveRight();
+                    }
                 }
             }
         }
@@ -2125,23 +2343,30 @@ namespace LadderEditor.Controls
         #region LINE_V
         public void ItemLINE_V()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                if (seldown.HasValue && selup.HasValue)
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    using (var tr = actmgr.CreateTransaction())
+                    if (seldown.HasValue && selup.HasValue)
                     {
-                        RegionLoop(seldown.Value, selup.Value, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_V, true); });
-                    }
+                        using (var tr = actmgr.CreateTransaction())
+                        {
+                            var pdown = new Point(seldown.Value.X, DicRows[seldown.Value.Y].Row);
+                            var pup = new Point(selup.Value.X, DicRows[seldown.Value.Y].Row);
+                            RegionLoop(pdown, pup, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_V, true); });
+                        }
 
-                    bCutBuffer = false;
-                    seldown = selmove = selup = null;
-                    Invalidate();
-                }
-                else if (!seldown.HasValue && !selup.HasValue)
-                {
-                    SetItemPoint(CurY, CurX, LadderItemType.LINE_V, false);
-                    CurY++;
+                        bCutBuffer = false;
+                        seldown = selmove = selup = null;
+                        Invalidate();
+                    }
+                    else if (!seldown.HasValue && !selup.HasValue)
+                    {
+                        SetItemPoint(CurRow, CurX, LadderItemType.LINE_V, false);
+
+                        MoveDown();
+                    }
                 }
             }
         }
@@ -2149,13 +2374,17 @@ namespace LadderEditor.Controls
         #region OUT_COIL
         public void ItemOUT_COIL()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.OUT_COIL, false);
-                    Invalidate();
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.OUT_COIL, false);
+                        Invalidate();
+                    }
                 }
             }
         }
@@ -2163,13 +2392,17 @@ namespace LadderEditor.Controls
         #region OUT_FUNC
         public void ItemOUT_FUNC()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.OUT_FUNC, false);
-                    Invalidate();
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.OUT_FUNC, false);
+                        Invalidate();
+                    }
                 }
             }
         }
@@ -2177,13 +2410,17 @@ namespace LadderEditor.Controls
         #region NOT
         public void ItemNOT()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.NOT, false);
-                    Invalidate();
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.NOT, false);
+                        Invalidate();
+                    }
                 }
             }
         }
@@ -2191,13 +2428,17 @@ namespace LadderEditor.Controls
         #region RISING_EDGE
         public void ItemRISING_EDGE()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.RISING_EDGE, false);
-                    Invalidate();
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.RISING_EDGE, false);
+                        Invalidate();
+                    }
                 }
             }
         }
@@ -2205,18 +2446,23 @@ namespace LadderEditor.Controls
         #region FALLING_EDGE
         public void ItemFALLING_EDGE()
         {
-            if (!Debug && Buffer.Count == 0)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && Buffer.Count == 0 && b)
                 {
-                    HorizonLeftLoop(CurY, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
-                    SetItemPoint(CurY, CurX, LadderItemType.FALLING_EDGE, false);
-                    Invalidate();
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        HorizonLeftLoop(CurRow, CurX, (row, col) => { SetItemFill(row, col, LadderItemType.LINE_H, true); });
+                        SetItemPoint(CurRow, CurX, LadderItemType.FALLING_EDGE, false);
+                        Invalidate();
+                    }
                 }
             }
         }
         #endregion
         #endregion
+
         #region Line
         #region LineInsert
         public void LineInsert()
@@ -2225,7 +2471,7 @@ namespace LadderEditor.Controls
             {
                 using (var tr = actmgr.CreateTransaction())
                 {
-                    foreach (var v in Ladders.Where(x => x.Row >= CurY)) EditLadderAction(v, new LadderItem() { Row = v.Row + 1, Col = v.Col, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                    foreach (var v in Ladders.Where(x => x.Row >= CurRow)) EditLadderAction(v, new LadderItem() { Row = v.Row + 1, Col = v.Col, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
                 }
                 Invalidate();
             }
@@ -2234,55 +2480,69 @@ namespace LadderEditor.Controls
         #region LineDelete
         public void LineDelete()
         {
-            if (!Debug)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && b)
                 {
-                    foreach (var v in Ladders.Where(x => x.Row == CurY)) DeleteLadderAction(v);
-                    foreach (var v in Ladders.Where(x => x.Row > CurY)) EditLadderAction(v, new LadderItem() { Row = v.Row - 1, Col = v.Col, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        foreach (var v in Ladders.Where(x => x.Row == CurRow)) DeleteLadderAction(v);
+                        foreach (var v in Ladders.Where(x => x.Row > CurRow)) EditLadderAction(v, new LadderItem() { Row = v.Row - 1, Col = v.Col, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                    }
+                    Invalidate();
                 }
-                Invalidate();
             }
         }
         #endregion
         #endregion
+
         #region Cell
         #region CellInsert
         public void CellInsert()
         {
-            if (!Debug)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = actmgr.CreateTransaction())
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && b)
                 {
-                    int row = CurY;
-                    int col = CurX;
-                    var vl = Ladders.Where(x => x.Row == row && x.Col >= col);
-                    if (vl.Count() > 0 && vl.Max(x => x.Col) + 1 < ColumnCount)
-                        foreach (var v in vl) EditLadderAction(v, new LadderItem() { Row = v.Row, Col = v.Col + 1, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                    using (var tr = actmgr.CreateTransaction())
+                    {
+                        int row = CurRow;
+                        int col = CurX;
+                        var vl = Ladders.Where(x => x.Row == row && x.Col >= col);
+                        if (vl.Count() > 0 && vl.Max(x => x.Col) + 1 < ColumnCount)
+                            foreach (var v in vl) EditLadderAction(v, new LadderItem() { Row = v.Row, Col = v.Col + 1, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                    }
+                    Invalidate();
                 }
-                Invalidate();
             }
         }
         #endregion
         #region CellDelete
         public void CellDelete()
         {
-            if (!Debug)
+            if (DicRows.ContainsKey(CurRow))
             {
-                using (var tr = GuiLabs.Undo.Transaction.Create(actmgr))
+                var b = DicRows[CurRow].FoldingRows.Count == 0 || (DicRows[CurRow].FoldingRows.Count > 0 && DicRows[CurRow].Expand);
+                if (!Debug && b)
                 {
-                    if (ContainsLadder(CurY, CurX)) DeleteLadderAction(GetLadder(CurY, CurX));
-                    else
+                    using (var tr = GuiLabs.Undo.Transaction.Create(actmgr))
                     {
-                        foreach (var v in Ladders.Where(x => x.Row == CurY && x.Col > CurX))
-                            EditLadderAction(v, new LadderItem() { Row = v.Row, Col = v.Col - 1, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                        if (ContainsLadder(CurRow, CurX)) DeleteLadderAction(GetLadder(CurRow, CurX));
+                        else
+                        {
+                            foreach (var v in Ladders.Where(x => x.Row == CurRow && x.Col > CurX))
+                                EditLadderAction(v, new LadderItem() { Row = v.Row, Col = v.Col - 1, Code = v.Code, ItemType = v.ItemType, VerticalLine = v.VerticalLine });
+                        }
                     }
+                    Invalidate();
                 }
-                Invalidate();
             }
         }
         #endregion
         #endregion
+
         #region Reset
         public void Reset()
         {
@@ -2290,6 +2550,7 @@ namespace LadderEditor.Controls
             Invalidate();
         }
         #endregion
+
         #region Edit
         #region Undo
         public void Undo()
@@ -2322,7 +2583,12 @@ namespace LadderEditor.Controls
                 Buffer.Clear();
                 var v = GetSelectItem();
                 var itm = v.OrderBy(x => x.Col).ThenBy(x => x.Row).FirstOrDefault();
-                if (itm != null) { CurX = itm.Col; CurY = itm.Row; }
+                if (itm != null)
+                {
+                    CurX = itm.Col;
+                    var ci = DicRows.ContainsKey(itm.Row) ? Rows.IndexOf(DicRows[itm.Row]) : -1;
+                    if (ci >= 0 && ci < Rows.Count) CurY = ci;
+                }
                 Buffer.AddRange(v.Select(x => x.Clone()));
                 bCutBuffer = false;
                 Invalidate();
@@ -2345,7 +2611,12 @@ namespace LadderEditor.Controls
                 }
 
                 var itm = v.OrderBy(x => x.Col).ThenBy(x => x.Row).FirstOrDefault();
-                if (itm != null) { CurX = itm.Col; CurY = itm.Row; }
+                if (itm != null)
+                {
+                    CurX = itm.Col;
+                    var ci = DicRows.ContainsKey(itm.Row) ? Rows.IndexOf(DicRows[itm.Row]) : -1;
+                    if (ci >= 0 && ci < Rows.Count) CurY = ci;
+                }
                 Buffer.AddRange(v.Select(x => x.Clone()));
                 bCutBuffer = true;
                 selmove = selup = seldown = null;
@@ -2364,10 +2635,10 @@ namespace LadderEditor.Controls
                 {
                     var minx = Buffer.Min(_x => _x.Col);
                     var maxx = Buffer.Max(_x => _x.Col);
-                    var miny = Buffer.Min(_x => _x.Row);
-                    var maxy = Buffer.Max(_x => _x.Row);
+                    var miny = DicRows[Buffer.Min(_x => _x.Row)].FoldingRows.FirstOrDefault()?.Row ?? DicRows[Buffer.Min(_x => _x.Row)].Row;
+                    var maxy = DicRows[Buffer.Max(_x => _x.Row)].FoldingRows.LastOrDefault()?.Row ?? DicRows[Buffer.Max(_x => _x.Row)].Row;
                     var gapx = CurX - minx;
-                    var gapy = CurY - miny;
+                    var gapy = CurRow - miny;
 
                     if (gapx + maxx > ColumnCount - 1 || gapy + maxy > RowCount - 1) MessageBox.ShowMessageBoxOk("실패", "붙여넣을 위치가 제한을 넘어갑니다.");
                     else
@@ -2413,7 +2684,8 @@ namespace LadderEditor.Controls
             {
                 using (var tr = actmgr.CreateTransaction())
                 {
-                    foreach (var v in GetSelectItem())
+                    var ls = GetSelectItem();
+                    foreach (var v in ls)
                         DeleteLadderAction(v);
                 }
                 seldown = selmove = selup = null;
@@ -2422,14 +2694,15 @@ namespace LadderEditor.Controls
         }
         #endregion
         #endregion
-        #region Debug Start/Stop/Set
+
+        #region Debug
         #region StarDebug
         void StartDebug()
         {
             if (Program.MainForm.CurrentDocument != null)
             {
                 #region Buffer Clear
-                if(Buffer.Count > 0)
+                if (Buffer.Count > 0)
                 {
                     UndoForce();
                     Buffer.Clear();
@@ -2481,7 +2754,7 @@ namespace LadderEditor.Controls
                                 MonitorValues.Add(v.Row + "," + v.Col, new MonitorValue(v) { ValueType = MonitorValueKinds.WORD });
                             else if (addr.Type == AddressType.FLOAT)
                                 MonitorValues.Add(v.Row + "," + v.Col, new MonitorValue(v) { ValueType = MonitorValueKinds.FLOAT });
-                            else if(addr.Type== AddressType.BIT || addr.Type == AddressType.BIT_WORD)
+                            else if (addr.Type == AddressType.BIT || addr.Type == AddressType.BIT_WORD)
                                 MonitorValues.Add(v.Row + "," + v.Col, new MonitorValue(v) { ValueType = MonitorValueKinds.CONTACT });
                         }
                     }
@@ -2499,10 +2772,10 @@ namespace LadderEditor.Controls
         public void SetDebug(List<DebugInfo> dbgs)
         {
             var dic = dbgs.ToDictionary(x => x.Row + "," + x.Column);
-        
-            foreach(var vk in dic.Keys)
+
+            foreach (var vk in dic.Keys)
             {
-                if(MonitorValues.ContainsKey(vk))
+                if (MonitorValues.ContainsKey(vk))
                 {
                     var mon = MonitorValues[vk];
                     var v = dic[vk];
@@ -2524,7 +2797,7 @@ namespace LadderEditor.Controls
                         if (itm != null) { itm.Monitor = mon.Contact; itm.Timer = mon.Timer; }
                     }
 
-                    if(v.Type == DebugInfoType.Word && mon.ValueType == MonitorValueKinds.WORD)
+                    if (v.Type == DebugInfoType.Word && mon.ValueType == MonitorValueKinds.WORD)
                     {
                         mon.Word = v.Word;
 
@@ -2544,17 +2817,92 @@ namespace LadderEditor.Controls
         }
         #endregion
         #endregion
+
+        #region MakeRows
+        internal void MakeRows()
+        {
+            #region Set
+            var LD_ROW = Ladders.OrderBy(x => x.Row).ThenBy(x => x.Col).ToLookup(x => x.Row);
+
+            var lsRegion = Ladders.Where(x => x.Col == 0 && (x.Code.StartsWith("#region") || x.Code.StartsWith("#endregion"))).OrderBy(x => x.Row);
+            var lsFold = new List<Fold>();
+            var ls = new List<LadderRow>();
+            var stk = new Stack<LadderItem>();
+            #endregion
+
+            #region Fold
+            foreach (var v in lsRegion)
+            {
+                if (v.Code.StartsWith("#region")) stk.Push(v);
+                if (v.Code.StartsWith("#endregion"))
+                {
+                    if (stk.Count > 0) lsFold.Add(new Fold { StartRow = stk.Pop().Row, EndRow = v.Row });
+                }
+            }
+            #endregion
+
+            #region List
+            for (int i = 0; i < RowCount; i++)
+            {
+                if (LD_ROW.Contains(i))
+                {
+                    var Items = LD_ROW[i].ToList();
+                    ls.Add(new LadderRow(i, LD_ROW[i].ToList())
+                    {
+                        Expand = Items.Count > 0 && Items[0].ItemType == LadderItemType.NONE && Items[0].Code.StartsWith("#region") && Items[0].Expand
+                    });
+                }
+                else
+                    ls.Add(new LadderRow(i));
+            }
+            var dic = ls.ToDictionary(x => x.Row);
+            #endregion
+
+            #region Rows
+            var dic2 = ls.ToDictionary(x => x.Row);
+            foreach (var fold in lsFold)
+            {
+                if (dic.ContainsKey(fold.StartRow) && !dic[fold.StartRow].Expand)
+                {
+                    if (dic.ContainsKey(fold.StartRow))
+                    {
+                        dic[fold.StartRow].StartRow = fold.StartRow;
+                        dic[fold.StartRow].EndRow = fold.EndRow;
+                    }
+
+                    for (int i = fold.StartRow; i <= fold.EndRow; i++)
+                        if (dic2.ContainsKey(i))
+                        {
+                            var row = dic[i];
+                            var parent = dic2[fold.StartRow];
+
+                            if (row != parent) row.Parent = parent;
+
+                            parent.FoldingRows.Add(row);
+                        }
+
+                    ls = ls.Where(x => !(x.Row > fold.StartRow && x.Row <= fold.EndRow)).ToList();
+                    dic2 = ls.ToDictionary(x => x.Row);
+                }
+            }
+
+            DicRows = dic;
+            Rows = ls;
+            #endregion
+        }
+        #endregion
         #endregion
     }
 
-    #region [ Class ] AfterItem
+    #region classes
+    #region class : AfterItem
     public class AfterItem
     {
-        public LadderItem item;
-        public Rectangle Bounds;
+        public LadderItem Item;
+        public RectangleF Bounds;
     }
     #endregion
-    #region [ Class ] Action
+    #region class : Action
     #region Add
     public class LadderAddAction : GuiLabs.Undo.AbstractAction
     {
@@ -2637,7 +2985,7 @@ namespace LadderEditor.Controls
     }
     #endregion
     #endregion
-    #region [ Class ] MonitorValue
+    #region class : MonitorValue
     public class MonitorValue
     {
         public MonitorValueKinds ValueType { get; set; }
@@ -2655,10 +3003,66 @@ namespace LadderEditor.Controls
         }
     }
     #endregion
-    #region [ Enum ] MonitorValueKinds
+    #region class : LadderRow
+    public class LadderRow
+    {
+        #region Properties
+        public int Row { get; set; }
+        public int StartRow { get; set; }
+        public int EndRow { get; set; }
+
+        public List<LadderItem> Items { get; private set; } = new List<LadderItem>();
+        public List<LadderRow> FoldingRows { get; private set; } = new List<LadderRow>();
+        public bool Expand
+        {
+            get => Items.Count > 0 && Items[0].ItemType == LadderItemType.NONE && Items[0].Code.StartsWith("#region") && Items[0].Expand;
+            set
+            {
+                if (Items.Count > 0 && Items[0].ItemType == LadderItemType.NONE && Items[0].Code.StartsWith("#region")) 
+                    Items[0].Expand = value;
+            }
+        }
+       
+        public LadderRow Parent { get; set; }
+        #endregion
+
+        #region Constructor
+        public LadderRow(int Row)
+        {
+            this.Row = Row;
+        }
+
+        public LadderRow(int Row, List<LadderItem> Items)
+        {
+            this.Row = Row;
+            this.Items = Items;
+        }
+        #endregion
+
+        #region Override
+        public override string ToString()
+        {
+            return $"[{Row}] {Expand}";
+        }
+        #endregion
+    }
+    #endregion
+    #region class : Fold
+    public class Fold
+    {
+        public int StartRow { get; set; }
+        public int EndRow { get; set; }
+
+        public bool Check(int Row) => Row >= StartRow && Row <= EndRow;
+    }
+    #endregion
+    #endregion
+    #region enums
+    #region enum : MonitorValueKinds
     public enum MonitorValueKinds { WORD, CONTACT, TIMER, FLOAT }
     #endregion
-    #region [ Enum ] LadderDisplayKinds
+    #region enum : LadderDisplayKinds
     public enum LadderDisplayKinds { DEC, HEX, BIN }
+    #endregion
     #endregion
 }

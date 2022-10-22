@@ -3,19 +3,16 @@ using Devinno.Extensions;
 using Devinno.Forms;
 using Devinno.Forms.Controls;
 using Devinno.Forms.Dialogs;
+using Devinno.Forms.Icons;
 using Devinno.Forms.Themes;
 using Devinno.PLC.Ladder;
 using Devinno.Tools;
 using LadderEditor.Tools;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace LadderEditor.Forms
@@ -37,65 +34,93 @@ namespace LadderEditor.Forms
 
             #region ComboBox
             var bauds = new int[] { 4800, 9600, 19200, 38400, 57600, 115200 };
-            MDRM_inBaudrate.Items.AddRange(bauds.Select(x => new ComboBoxItem(x.ToString()) { Tag = x }));
-            MDRS_inBaudrate.Items.AddRange(bauds.Select(x => new ComboBoxItem(x.ToString()) { Tag = x }));
+            MDRM_inBaudrate.Items.AddRange(bauds.Select(x => new TextIcon { Text = x.ToString(), Tag = x }));
+            MDRS_inBaudrate.Items.AddRange(bauds.Select(x => new TextIcon { Text = x.ToString(), Tag = x }));
 
             MDRS_inBaudrate.SelectedIndex = bauds.Length - 1;
             MDRM_inBaudrate.SelectedIndex = bauds.Length - 1;
             #endregion
 
+            #region Buttons
+            btnComms.SelectionMode = true;
+            btnComms.Buttons.Add(new ButtonInfo("MDRS") { Checked = true, Text = "Modbus RTU\r\nSlave", Size = new SizeInfo(DvSizeMode.Percent, 20) });
+            btnComms.Buttons.Add(new ButtonInfo("MDRM") { Checked = false, Text = "Modbus RTU\r\nMaster", Size = new SizeInfo(DvSizeMode.Percent, 20) });
+            btnComms.Buttons.Add(new ButtonInfo("MDTS") { Checked = false, Text = "Modbus TCP\r\nSlave", Size = new SizeInfo(DvSizeMode.Percent, 20) });
+            btnComms.Buttons.Add(new ButtonInfo("MDTM") { Checked = false, Text = "Modbus TCP\r\nMaster", Size = new SizeInfo(DvSizeMode.Percent, 20) });
+            btnComms.Buttons.Add(new ButtonInfo("MQTT") { Checked = false, Text = "MQTT", Size = new SizeInfo(DvSizeMode.Percent, 20) });
+
+            MDRM_btnBindAR.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            MDRM_btnBindAR.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+
+            MDRM_btnMonitorAR.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            MDRM_btnMonitorAR.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+
+            MDTM_btnBindAR.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            MDTM_btnBindAR.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+
+            MDTM_btnMonitorAR.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            MDTM_btnMonitorAR.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+
+            MQTT_btnPubAR.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            MQTT_btnPubAR.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+
+            MQTT_btnSubAR.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            MQTT_btnSubAR.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            #endregion
+
             #region DataGrid
-            var fns = new ModbusFunction[] { ModbusFunction.BITREAD_F1, ModbusFunction.BITREAD_F2, ModbusFunction.WORDREAD_F3, ModbusFunction.WORDREAD_F4 }.Select(x => new DvDataGridComboBoxItem(x.ToString().Replace("_", " [").Replace("BITREAD","Bit Read").Replace("WORDREAD", "Word Read") + "]") { Source = x }).ToList();
-            var mods = new BindMode[] { BindMode.BitRead, BindMode.BitWrite, BindMode.WordRead, BindMode.WordWrite }.Select(x => new DvDataGridComboBoxItem(x.ToString()) { Source = x }).ToList();
-            MDRM_dgMonitor.UseThemeColor = MDRM_dgBind.UseThemeColor = MDTM_dgMonitor.UseThemeColor = MDTM_dgBind.UseThemeColor = MQTT_dgPub.UseThemeColor = MQTT_dgSub.UseThemeColor = false;
+            var fns = new ModbusFunction[] { ModbusFunction.BITREAD_F1, ModbusFunction.BITREAD_F2, ModbusFunction.WORDREAD_F3, ModbusFunction.WORDREAD_F4 }.Select(x => new TextIcon { Text = x.ToString().Replace("_", " [").Replace("BITREAD", "Bit Read").Replace("WORDREAD", "Word Read") + "]", Value = x }).ToList();
+            var mods = new BindMode[] { BindMode.BitRead, BindMode.BitWrite, BindMode.WordRead, BindMode.WordWrite }.Select(x => new TextIcon { Text = x.ToString(), Value = x }).ToList();
             MDRM_dgMonitor.ColumnColor = MDRM_dgBind.ColumnColor = MDTM_dgMonitor.ColumnColor = MDTM_dgBind.ColumnColor = MQTT_dgPub.ColumnColor = MQTT_dgSub.ColumnColor = Color.FromArgb(30, 30, 30);
 
-            MDRM_dgMonitor.AutoSet = true;
-            MDRM_dgMonitor.SelectionMode = DvDataGridSelectionMode.SELECTOR;
-            MDRM_dgMonitor.Columns.Add(new DvDataGridColumn(MDRM_dgMonitor) { Name = "Slave", HeaderText = "국번", SizeMode = SizeMode.Percent, Width = 15, CellType = typeof(DvDataGridEditNumberCell) });
-            MDRM_dgMonitor.Columns.Add(new DvDataGridComboBoxColumn(MDRM_dgMonitor) { Name = "Func", HeaderText = "코드", SizeMode = SizeMode.Percent, Width = 40, Items = fns });
-            MDRM_dgMonitor.Columns.Add(new DvDataGridColumn(MDRM_dgMonitor) { Name = "Address", HeaderText = "시작 주소", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
-            MDRM_dgMonitor.Columns.Add(new DvDataGridColumn(MDRM_dgMonitor) { Name = "Length", HeaderText = "길이", SizeMode = SizeMode.Percent, Width = 15, CellType = typeof(DvDataGridEditNumberCell) });
+            MDRM_dgMonitor.SelectionMode = DvDataGridSelectionMode.Selector;
+            MDRM_dgMonitor.Columns.Add(new DvDataGridEditNumberColumn<byte>(MDRM_dgMonitor) { Name = "Slave", HeaderText = "국번", SizeMode = DvSizeMode.Percent, Width = 15 });
+            MDRM_dgMonitor.Columns.Add(new DvDataGridComboBoxColumn(MDRM_dgMonitor) { Name = "Func", HeaderText = "코드", SizeMode = DvSizeMode.Percent, Width = 40, Items = fns });
+            MDRM_dgMonitor.Columns.Add(new DvDataGridColumn(MDRM_dgMonitor) { Name = "Address", HeaderText = "시작 주소", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
+            MDRM_dgMonitor.Columns.Add(new DvDataGridEditNumberColumn<int>(MDRM_dgMonitor) { Name = "Length", HeaderText = "길이", SizeMode = DvSizeMode.Percent, Width = 15 });
 
-            MDRM_dgBind.AutoSet = true;
-            MDRM_dgBind.SelectionMode = DvDataGridSelectionMode.SELECTOR;
-            MDRM_dgBind.Columns.Add(new DvDataGridColumn(MDRM_dgBind) { Name = "Slave", HeaderText = "국번", SizeMode = SizeMode.Percent, Width = 15, CellType = typeof(DvDataGridEditNumberCell) });
-            MDRM_dgBind.Columns.Add(new DvDataGridComboBoxColumn(MDRM_dgBind) { Name = "Mode", HeaderText = "모드", SizeMode = SizeMode.Percent, Width = 35, Items = mods });
-            MDRM_dgBind.Columns.Add(new DvDataGridColumn(MDRM_dgBind) { Name = "Address", HeaderText = "시작 주소", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
-            MDRM_dgBind.Columns.Add(new DvDataGridColumn(MDRM_dgBind) { Name = "Bind", HeaderText = "바인딩", SizeMode = SizeMode.Percent, Width = 20, CellType = typeof(DvDataGridEditTextCell) });
+            MDRM_dgBind.SelectionMode = DvDataGridSelectionMode.Selector;
+            MDRM_dgBind.Columns.Add(new DvDataGridEditNumberColumn<byte>(MDRM_dgBind) { Name = "Slave", HeaderText = "국번", SizeMode = DvSizeMode.Percent, Width = 15 });
+            MDRM_dgBind.Columns.Add(new DvDataGridComboBoxColumn(MDRM_dgBind) { Name = "Mode", HeaderText = "모드", SizeMode = DvSizeMode.Percent, Width = 35, Items = mods });
+            MDRM_dgBind.Columns.Add(new DvDataGridColumn(MDRM_dgBind) { Name = "Address", HeaderText = "시작 주소", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
+            MDRM_dgBind.Columns.Add(new DvDataGridColumn(MDRM_dgBind) { Name = "Bind", HeaderText = "바인딩", SizeMode = DvSizeMode.Percent, Width = 20, CellType = typeof(DvDataGridEditTextCell) });
 
-            MDTM_dgMonitor.AutoSet = true;
-            MDTM_dgMonitor.SelectionMode = DvDataGridSelectionMode.SELECTOR;
-            MDTM_dgMonitor.Columns.Add(new DvDataGridColumn(MDTM_dgMonitor) { Name = "Slave", HeaderText = "국번", SizeMode = SizeMode.Percent, Width = 15, CellType = typeof(DvDataGridEditNumberCell) });
-            MDTM_dgMonitor.Columns.Add(new DvDataGridComboBoxColumn(MDTM_dgMonitor) { Name = "Func", HeaderText = "코드", SizeMode = SizeMode.Percent, Width = 40, Items = fns });
-            MDTM_dgMonitor.Columns.Add(new DvDataGridColumn(MDTM_dgMonitor) { Name = "Address", HeaderText = "시작 주소", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
-            MDTM_dgMonitor.Columns.Add(new DvDataGridColumn(MDTM_dgMonitor) { Name = "Length", HeaderText = "길이", SizeMode = SizeMode.Percent, Width = 15, CellType = typeof(DvDataGridEditNumberCell) });
+            MDTM_dgMonitor.SelectionMode = DvDataGridSelectionMode.Selector;
+            MDTM_dgMonitor.Columns.Add(new DvDataGridEditNumberColumn<byte>(MDTM_dgMonitor) { Name = "Slave", HeaderText = "국번", SizeMode = DvSizeMode.Percent, Width = 15 });
+            MDTM_dgMonitor.Columns.Add(new DvDataGridComboBoxColumn(MDTM_dgMonitor) { Name = "Func", HeaderText = "코드", SizeMode = DvSizeMode.Percent, Width = 40, Items = fns });
+            MDTM_dgMonitor.Columns.Add(new DvDataGridColumn(MDTM_dgMonitor) { Name = "Address", HeaderText = "시작 주소", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
+            MDTM_dgMonitor.Columns.Add(new DvDataGridEditNumberColumn<int>(MDTM_dgMonitor) { Name = "Length", HeaderText = "길이", SizeMode = DvSizeMode.Percent, Width = 15 });
 
-            MDTM_dgBind.AutoSet = true;
-            MDTM_dgBind.SelectionMode = DvDataGridSelectionMode.SELECTOR;
-            MDTM_dgBind.Columns.Add(new DvDataGridColumn(MDTM_dgBind) { Name = "Slave", HeaderText = "국번", SizeMode = SizeMode.Percent, Width = 15, CellType = typeof(DvDataGridEditNumberCell) });
-            MDTM_dgBind.Columns.Add(new DvDataGridComboBoxColumn(MDTM_dgBind) { Name = "Mode", HeaderText = "모드", SizeMode = SizeMode.Percent, Width = 35, Items = mods });
-            MDTM_dgBind.Columns.Add(new DvDataGridColumn(MDTM_dgBind) { Name = "Address", HeaderText = "시작 주소", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
-            MDTM_dgBind.Columns.Add(new DvDataGridColumn(MDTM_dgBind) { Name = "Bind", HeaderText = "바인딩", SizeMode = SizeMode.Percent, Width = 20, CellType = typeof(DvDataGridEditTextCell) });
+            MDTM_dgBind.SelectionMode = DvDataGridSelectionMode.Selector;
+            MDTM_dgBind.Columns.Add(new DvDataGridEditNumberColumn<byte>(MDTM_dgBind) { Name = "Slave", HeaderText = "국번", SizeMode = DvSizeMode.Percent, Width = 15 });
+            MDTM_dgBind.Columns.Add(new DvDataGridComboBoxColumn(MDTM_dgBind) { Name = "Mode", HeaderText = "모드", SizeMode = DvSizeMode.Percent, Width = 35, Items = mods });
+            MDTM_dgBind.Columns.Add(new DvDataGridColumn(MDTM_dgBind) { Name = "Address", HeaderText = "시작 주소", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(AddressCell) });
+            MDTM_dgBind.Columns.Add(new DvDataGridColumn(MDTM_dgBind) { Name = "Bind", HeaderText = "바인딩", SizeMode = DvSizeMode.Percent, Width = 20, CellType = typeof(DvDataGridEditTextCell) });
 
-            MQTT_dgPub.AutoSet = true;
-            MQTT_dgPub.SelectionMode = DvDataGridSelectionMode.SELECTOR;
-            MQTT_dgPub.Columns.Add(new DvDataGridColumn(MQTT_dgPub) { Name = "Topic", HeaderText = "토픽", SizeMode = SizeMode.Percent, Width = 70, CellType = typeof(DvDataGridEditTextCell) });
-            MQTT_dgPub.Columns.Add(new DvDataGridColumn(MQTT_dgPub) { Name = "Address", HeaderText = "메모리 주소", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(DvDataGridEditTextCell) });
+            MQTT_dgPub.SelectionMode = DvDataGridSelectionMode.Selector;
+            MQTT_dgPub.Columns.Add(new DvDataGridColumn(MQTT_dgPub) { Name = "Topic", HeaderText = "토픽", SizeMode = DvSizeMode.Percent, Width = 70, CellType = typeof(DvDataGridEditTextCell) });
+            MQTT_dgPub.Columns.Add(new DvDataGridColumn(MQTT_dgPub) { Name = "Address", HeaderText = "메모리 주소", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(DvDataGridEditTextCell) });
 
-            MQTT_dgSub.AutoSet = true;
-            MQTT_dgSub.SelectionMode = DvDataGridSelectionMode.SELECTOR;
-            MQTT_dgSub.Columns.Add(new DvDataGridColumn(MQTT_dgSub) { Name = "Topic", HeaderText = "토픽", SizeMode = SizeMode.Percent, Width = 70, CellType = typeof(DvDataGridEditTextCell) });
-            MQTT_dgSub.Columns.Add(new DvDataGridColumn(MQTT_dgSub) { Name = "Address", HeaderText = "메모리 주소", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(DvDataGridEditTextCell) });
+            MQTT_dgSub.SelectionMode = DvDataGridSelectionMode.Selector;
+            MQTT_dgSub.Columns.Add(new DvDataGridColumn(MQTT_dgSub) { Name = "Topic", HeaderText = "토픽", SizeMode = DvSizeMode.Percent, Width = 70, CellType = typeof(DvDataGridEditTextCell) });
+            MQTT_dgSub.Columns.Add(new DvDataGridColumn(MQTT_dgSub) { Name = "Address", HeaderText = "메모리 주소", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(DvDataGridEditTextCell) });
             #endregion
 
             #region Event
-            #region tgl[MDRS/MDRM/MDTS/MDTM/MQTT].ButtonClick
-            tglMDRS.ButtonClick += (o, s) => { tab.SelectedTab = tpMDRS; SetToggle(); };
-            tglMDRM.ButtonClick += (o, s) => { tab.SelectedTab = tpMDRM; SetToggle(); };
-            tglMDTS.ButtonClick += (o, s) => { tab.SelectedTab = tpMDTS; SetToggle(); };
-            tglMDTM.ButtonClick += (o, s) => { tab.SelectedTab = tpMDTM; SetToggle(); };
-            tglMQTT.ButtonClick += (o, s) => { tab.SelectedTab = tpMQTT; SetToggle(); };
+            #region btnComms.ButtonClick
+            btnComms.SelectedChanged += (o, s) =>
+            {
+                switch(s.Button.Name)
+                {
+                    case "MDRS": tab.SelectedTab = tpMDRS; break;
+                    case "MDRM": tab.SelectedTab = tpMDRM; break;
+                    case "MDTS": tab.SelectedTab = tpMDTS; break;
+                    case "MDTM": tab.SelectedTab = tpMDTM; break;
+                    case "MQTT": tab.SelectedTab = tpMQTT; break;
+                }
+
+                SetToggle();
+            };
             #endregion
             #region btn[OK/Cancel].ButtonClick
             btnOK.ButtonClick += (o, s) =>
@@ -112,124 +137,119 @@ namespace LadderEditor.Forms
             btnCancel.ButtonClick += (o, s) => DialogResult = DialogResult.Cancel;
             #endregion
             #region MDRS_lblArea[P/M/T/C/D/WP/WM].ButtonClick
-            MDRS_lblAreaP.ButtonClick += (o, s) =>
+            MDRS_lblAreaP.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDRS_lblAreaM.ButtonClick += (o, s) =>
+            MDRS_lblAreaM.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDRS_lblAreaT.ButtonClick += (o, s) =>
+            MDRS_lblAreaT.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDRS_lblAreaC.ButtonClick += (o, s) =>
+            MDRS_lblAreaC.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDRS_lblAreaD.ButtonClick += (o, s) =>
+            MDRS_lblAreaD.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDRS_lblAreaWP.ButtonClick += (o, s) =>
+            MDRS_lblAreaWP.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDRS_lblAreaWM.ButtonClick += (o, s) =>
+            MDRS_lblAreaWM.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueLabelButton)o);
-                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
+                var c = ((DvValueLabelText)o);
+                var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역 시작주소", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
             #endregion
             #region MDTS_lblArea[P/M/T/C/D/WP/WM].ButtonClick
-            MDTS_lblAreaP.ButtonClick += (o, s) =>
+            MDTS_lblAreaP.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDTS_lblAreaM.ButtonClick += (o, s) =>
+            MDTS_lblAreaM.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDTS_lblAreaT.ButtonClick += (o, s) =>
+            MDTS_lblAreaT.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDTS_lblAreaC.ButtonClick += (o, s) =>
+            MDTS_lblAreaC.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDTS_lblAreaD.ButtonClick += (o, s) =>
+            MDTS_lblAreaD.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDTS_lblAreaWP.ButtonClick += (o, s) =>
+            MDTS_lblAreaWP.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
 
-            MDTS_lblAreaWM.ButtonClick += (o, s) =>
+            MDTS_lblAreaWM.ButtonClicked += (o, s) =>
             {
-                var c = ((DvValueInputButton)o);
+                var c = ((DvValueLabelText)o);
                 var r = InputBaseAddress(c.Text.Split(' ').FirstOrDefault() + "영역", c.Text);
                 if (r.HasValue) c.Value = ValueTool.GetHexString(r.Value);
             };
             #endregion
-            #region MDRM_btnMonitor[Add/Del].ButtonClick
-            MDRM_btnMonitorAdd.ButtonClick += (o, s) =>
+            #region MDRM_btnMonitorAR.ButtonClick
+            MDRM_btnMonitorAR.ButtonClick += (o, s) =>
             {
                 var v = MDRM;
 
-                v.Monitors.Add(new ModbusMonitor());
-
-                var vpos1 = MDRM_dgMonitor.VScrollPosition;
-                MDRM_dgMonitor.SetDataSource<ModbusMonitor>(v.Monitors);
-                MDRM_dgMonitor.VScrollPosition = vpos1;
-                MDRM_dgMonitor.Invalidate();
-            };
-            
-            MDRM_btnMonitorDel.ButtonClick += (o, s) =>
-            {
-                var v = MDRM;
-
-                var sels = MDRM_dgMonitor.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusMonitor);
-                foreach (var itm in sels) v.Monitors.Remove(itm);
+                if (s.Button.Name == "Add")
+                {
+                    v.Monitors.Add(new ModbusMonitor());
+                }
+                else if (s.Button.Name == "Del")
+                {
+                    var sels = MDRM_dgMonitor.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusMonitor);
+                    foreach (var itm in sels) v.Monitors.Remove(itm);
+                }
 
                 var vpos1 = MDRM_dgMonitor.VScrollPosition;
                 MDRM_dgMonitor.SetDataSource<ModbusMonitor>(v.Monitors);
@@ -237,25 +257,20 @@ namespace LadderEditor.Forms
                 MDRM_dgMonitor.Invalidate();
             };
             #endregion
-            #region MDRM_btnBind[Add/Del].ButtonClick
-            MDRM_btnBindAdd.ButtonClick += (o, s) =>
+            #region MDRM_btnBindAR.ButtonClick
+            MDRM_btnBindAR.ButtonClick += (o, s) =>
             {
                 var v = MDRM;
 
-                v.Binds.Add(new ModbusBind());
-
-                var vpos1 = MDRM_dgBind.VScrollPosition;
-                MDRM_dgBind.SetDataSource<ModbusBind>(v.Binds);
-                MDRM_dgBind.VScrollPosition = vpos1;
-                MDRM_dgBind.Invalidate();
-            };
-
-            MDRM_btnBindDel.ButtonClick += (o, s) =>
-            {
-                var v = MDRM;
-
-                var sels = MDRM_dgBind.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusBind);
-                foreach (var itm in sels) v.Binds.Remove(itm);
+                if (s.Button.Name == "Add")
+                {
+                    v.Binds.Add(new ModbusBind());
+                }
+                else if (s.Button.Name == "Del")
+                {
+                    var sels = MDRM_dgBind.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusBind);
+                    foreach (var itm in sels) v.Binds.Remove(itm);
+                }
 
                 var vpos1 = MDRM_dgBind.VScrollPosition;
                 MDRM_dgBind.SetDataSource<ModbusBind>(v.Binds);
@@ -263,25 +278,20 @@ namespace LadderEditor.Forms
                 MDRM_dgBind.Invalidate();
             };
             #endregion
-            #region MDTM_btnMonitor[Add/Del].ButtonClick
-            MDTM_btnMonitorAdd.ButtonClick += (o, s) =>
+            #region MDTM_btnMonitorAR.ButtonClick
+            MDTM_btnMonitorAR.ButtonClick += (o, s) =>
             {
                 var v = MDTM;
 
-                v.Monitors.Add(new ModbusMonitor());
-
-                var vpos1 = MDTM_dgMonitor.VScrollPosition;
-                MDTM_dgMonitor.SetDataSource<ModbusMonitor>(v.Monitors);
-                MDTM_dgMonitor.VScrollPosition = vpos1;
-                MDTM_dgMonitor.Invalidate();
-            };
-
-            MDTM_btnMonitorDel.ButtonClick += (o, s) =>
-            {
-                var v = MDTM;
-
-                var sels = MDTM_dgMonitor.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusMonitor);
-                foreach (var itm in sels) v.Monitors.Remove(itm);
+                if (s.Button.Name == "Add")
+                {
+                    v.Monitors.Add(new ModbusMonitor());
+                }
+                else if (s.Button.Name == "Del")
+                {
+                    var sels = MDTM_dgMonitor.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusMonitor);
+                    foreach (var itm in sels) v.Monitors.Remove(itm);
+                }
 
                 var vpos1 = MDTM_dgMonitor.VScrollPosition;
                 MDTM_dgMonitor.SetDataSource<ModbusMonitor>(v.Monitors);
@@ -289,25 +299,20 @@ namespace LadderEditor.Forms
                 MDTM_dgMonitor.Invalidate();
             };
             #endregion
-            #region MDTM_btnBind[Add/Del].ButtonClick
-            MDTM_btnBindAdd.ButtonClick += (o, s) =>
+            #region MDTM_MDTM_btnBindAR.ButtonClick
+            MDTM_btnBindAR.ButtonClick += (o, s) =>
             {
                 var v = MDTM;
 
-                v.Binds.Add(new ModbusBind());
-
-                var vpos1 = MDTM_dgBind.VScrollPosition;
-                MDTM_dgBind.SetDataSource<ModbusBind>(v.Binds);
-                MDTM_dgBind.VScrollPosition = vpos1;
-                MDTM_dgBind.Invalidate();
-            };
-
-            MDTM_btnBindDel.ButtonClick += (o, s) =>
-            {
-                var v = MDTM;
-
-                var sels = MDTM_dgBind.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusBind);
-                foreach (var itm in sels) v.Binds.Remove(itm);
+                if (s.Button.Name == "Add")
+                {
+                    v.Binds.Add(new ModbusBind());
+                }
+                else if (s.Button.Name == "Del")
+                {
+                    var sels = MDTM_dgBind.Rows.Where(x => x.Selected).Select(x => x.Source as ModbusBind);
+                    foreach (var itm in sels) v.Binds.Remove(itm);
+                }
 
                 var vpos1 = MDTM_dgBind.VScrollPosition;
                 MDTM_dgBind.SetDataSource<ModbusBind>(v.Binds);
@@ -315,25 +320,20 @@ namespace LadderEditor.Forms
                 MDTM_dgBind.Invalidate();
             };
             #endregion
-            #region MQTT_btnSub[Add/Del].ButtonClick
-            MQTT_btnSubAdd.ButtonClick += (o, s) =>
+            #region MQTT_btnSubAR.ButtonClick
+            MQTT_btnSubAR.ButtonClick += (o, s) =>
             {
                 var v = MQTT;
 
-                v.Subs.Add(new MqttPubSub());
-
-                var vpos1 = MQTT_dgSub.VScrollPosition;
-                MQTT_dgSub.SetDataSource(v.Subs);
-                MQTT_dgSub.VScrollPosition = vpos1;
-                MQTT_dgSub.Invalidate();
-            };
-
-            MQTT_btnSubDel.ButtonClick += (o, s) =>
-            {
-                var v = MQTT;
-
-                var sels = MQTT_dgSub.Rows.Where(x => x.Selected).Select(x => x.Source as MqttPubSub);
-                foreach (var itm in sels) v.Subs.Remove(itm);
+                if (s.Button.Name == "Add")
+                {
+                    v.Subs.Add(new MqttPubSub());
+                }
+                else if (s.Button.Name == "Del")
+                {
+                    var sels = MQTT_dgSub.Rows.Where(x => x.Selected).Select(x => x.Source as MqttPubSub);
+                    foreach (var itm in sels) v.Subs.Remove(itm);
+                }
 
                 var vpos1 = MQTT_dgSub.VScrollPosition;
                 MQTT_dgSub.SetDataSource(v.Subs);
@@ -342,24 +342,19 @@ namespace LadderEditor.Forms
             };
             #endregion
             #region MQTT_btnPub[Add/Del].ButtonClick
-            MQTT_btnPubAdd.ButtonClick += (o, s) =>
+            MQTT_btnSubAR.ButtonClick += (o, s) =>
             {
                 var v = MQTT;
 
-                v.Pubs.Add(new MqttPubSub());
-
-                var vpos1 = MQTT_dgPub.VScrollPosition;
-                MQTT_dgPub.SetDataSource(v.Pubs);
-                MQTT_dgPub.VScrollPosition = vpos1;
-                MQTT_dgPub.Invalidate();
-            };
-
-            MQTT_btnPubDel.ButtonClick += (o, s) =>
-            {
-                var v = MQTT;
-
-                var sels = MQTT_dgPub.Rows.Where(x => x.Selected).Select(x => x.Source as MqttPubSub);
-                foreach (var itm in sels) v.Pubs.Remove(itm);
+                if (s.Button.Name == "Add")
+                {
+                    v.Pubs.Add(new MqttPubSub());
+                }
+                else if (s.Button.Name == "Del")
+                {
+                    var sels = MQTT_dgPub.Rows.Where(x => x.Selected).Select(x => x.Source as MqttPubSub);
+                    foreach (var itm in sels) v.Pubs.Remove(itm);
+                }
 
                 var vpos1 = MQTT_dgPub.VScrollPosition;
                 MQTT_dgPub.SetDataSource(v.Pubs);
@@ -372,6 +367,10 @@ namespace LadderEditor.Forms
             #region Form Props
             StartPosition = FormStartPosition.CenterParent;
             this.Icon = Tools.IconTool.GetIcon(new Devinno.Forms.Icons.DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
+            #endregion
+
+            #region Icon
+            Icon = IconTool.GetIcon(new DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
             #endregion
         }
         #endregion
@@ -391,7 +390,7 @@ namespace LadderEditor.Forms
             }
 
             int? ret = null;
-            var str = Program.InputBox.ShowString(Title, "시작 주소", b ? "0x" + n2.ToString("X4") : null);
+            var str = Program.InputBox.ShowString(Title, b ? "0x" + n2.ToString("X4") : null);
             if (str != null)
             {
                 var r = ValueTool.GetHexValue(str);
@@ -403,20 +402,11 @@ namespace LadderEditor.Forms
         #region SetToggle
         void SetToggle()
         {
-            #region Toggle
-            tglMDRS.Checked = tab.SelectedTab == tpMDRS;
-            tglMDRM.Checked = tab.SelectedTab == tpMDRM;
-            tglMDTS.Checked = tab.SelectedTab == tpMDTS;
-            tglMDTM.Checked = tab.SelectedTab == tpMDTM;
-            tglMQTT.Checked = tab.SelectedTab == tpMQTT;
-            #endregion
-
             if (tab.SelectedTab == tpMDRS) pnlContent.Text = MDRS.Name;
             if (tab.SelectedTab == tpMDRM) pnlContent.Text = MDRM.Name;
             if (tab.SelectedTab == tpMDTS) pnlContent.Text = MDTS.Name;
             if (tab.SelectedTab == tpMDTM) pnlContent.Text = MDTM.Name;
             if (tab.SelectedTab == tpMQTT) pnlContent.Text = MQTT.Name;
-
         }
         #endregion
         #region SetUI
@@ -430,7 +420,7 @@ namespace LadderEditor.Forms
 
                 MDRS_inPort.Value = v.Port;
                 MDRS_inBaudrate.SelectedIndex = MDRS_inBaudrate.Items.Select(x => (int)x.Tag).ToList().IndexOf(v.Baudrate);
-                MDRS_inSlave.Value = v.Slave.ToString();
+                MDRS_inSlave.Value = Convert.ToByte(v.Slave & 0xFF);
                 MDRS_lblAreaP.Value = ValueTool.GetHexString(v.P_BaseAddress);
                 MDRS_lblAreaM.Value = ValueTool.GetHexString(v.M_BaseAddress);
                 MDRS_lblAreaT.Value = ValueTool.GetHexString(v.T_BaseAddress);
@@ -462,7 +452,7 @@ namespace LadderEditor.Forms
             {
                 var v = MDTS;
 
-                MDTS_inSlave.Value = v.Slave.ToString();
+                MDTS_inSlave.Value = Convert.ToByte(v.Slave & 0xFF);
                 MDTS_lblAreaP.Value = ValueTool.GetHexString(v.P_BaseAddress);
                 MDTS_lblAreaM.Value = ValueTool.GetHexString(v.M_BaseAddress);
                 MDTS_lblAreaT.Value = ValueTool.GetHexString(v.T_BaseAddress);
@@ -519,13 +509,13 @@ namespace LadderEditor.Forms
                 MDRS.Baudrate = (int)MDRS_inBaudrate.Items[MDRS_inBaudrate.SelectedIndex].Tag;
                 MDRS.Slave = Convert.ToInt32(MDRS_inSlave.Value);
 
-                if (MDRS_lblAreaP.UseButton) MDRS.P_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaP.Value).Value;
-                if (MDRS_lblAreaM.UseButton) MDRS.M_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaM.Value).Value;
-                if (MDRS_lblAreaT.UseButton) MDRS.T_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaT.Value).Value;
-                if (MDRS_lblAreaC.UseButton) MDRS.C_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaC.Value).Value;
-                if (MDRS_lblAreaD.UseButton) MDRS.D_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaD.Value).Value;
-                if (MDRS_lblAreaWP.UseButton) MDRS.WP_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaWP.Value).Value;
-                if (MDRS_lblAreaWM.UseButton) MDRS.WM_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaWM.Value).Value;
+                if (MDRS_lblAreaP.ButtonWidth.HasValue) MDRS.P_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaP.Value) ?? 0;
+                if (MDRS_lblAreaM.ButtonWidth.HasValue) MDRS.M_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaM.Value) ?? 0;
+                if (MDRS_lblAreaT.ButtonWidth.HasValue) MDRS.T_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaT.Value) ?? 0;
+                if (MDRS_lblAreaC.ButtonWidth.HasValue) MDRS.C_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaC.Value) ?? 0;
+                if (MDRS_lblAreaD.ButtonWidth.HasValue) MDRS.D_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaD.Value) ?? 0;
+                if (MDRS_lblAreaWP.ButtonWidth.HasValue) MDRS.WP_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaWP.Value) ?? 0;
+                if (MDRS_lblAreaWM.ButtonWidth.HasValue) MDRS.WM_BaseAddress = ValueTool.GetHexValue(MDRS_lblAreaWM.Value) ?? 0;
             }
             #endregion
             #region MDRM
@@ -540,13 +530,13 @@ namespace LadderEditor.Forms
             {
                 MDTS.Slave = Convert.ToInt32(MDTS_inSlave.Value);
 
-                if (MDTS_lblAreaP.UseButton) MDTS.P_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaP.Value).Value;
-                if (MDTS_lblAreaM.UseButton) MDTS.M_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaM.Value).Value;
-                if (MDTS_lblAreaT.UseButton) MDTS.T_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaT.Value).Value;
-                if (MDTS_lblAreaC.UseButton) MDTS.C_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaC.Value).Value;
-                if (MDTS_lblAreaD.UseButton) MDTS.D_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaD.Value).Value;
-                if (MDTS_lblAreaWP.UseButton) MDTS.WP_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaWP.Value).Value;
-                if (MDTS_lblAreaWM.UseButton) MDTS.WM_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaWM.Value).Value;
+                if (MDTS_lblAreaP.ButtonWidth.HasValue) MDTS.P_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaP.Value) ?? 0;
+                if (MDTS_lblAreaM.ButtonWidth.HasValue) MDTS.M_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaM.Value) ?? 0;
+                if (MDTS_lblAreaT.ButtonWidth.HasValue) MDTS.T_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaT.Value) ?? 0;
+                if (MDTS_lblAreaC.ButtonWidth.HasValue) MDTS.C_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaC.Value) ?? 0;
+                if (MDTS_lblAreaD.ButtonWidth.HasValue) MDTS.D_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaD.Value) ?? 0;
+                if (MDTS_lblAreaWP.ButtonWidth.HasValue) MDTS.WP_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaWP.Value) ?? 0;
+                if (MDTS_lblAreaWM.ButtonWidth.HasValue) MDTS.WM_BaseAddress = ValueTool.GetHexValue(MDTS_lblAreaWM.Value) ?? 0;
             }
             #endregion
             #region MDTM
@@ -573,7 +563,7 @@ namespace LadderEditor.Forms
                 if (ValidCheck().Count == 0)
                 {
                     Commit();
-                
+
                     if (tab.SelectedTab == tpMDRS) ret = MDRS;
                     else if (tab.SelectedTab == tpMDRM) ret = MDRM;
                     else if (tab.SelectedTab == tpMDTS) ret = MDTS;
@@ -591,12 +581,12 @@ namespace LadderEditor.Forms
         {
             var ret = new List<string>();
 
-            if(tab.SelectedTab == tpMDRS)
+            if (tab.SelectedTab == tpMDRS)
             {
                 var n = 0;
                 var c1 = !string.IsNullOrWhiteSpace(MDRS_inPort.Value);
                 var c2 = MDRS_inBaudrate.SelectedIndex >= 0;
-                var c3 = int.TryParse(MDRS_inSlave.Value, out n) && n >= 0 && n <= 255;
+                var c3 = MDRS_inSlave.Value.HasValue && MDRS_inSlave.Value.Value >= 0 && MDRS_inSlave.Value.Value <= 255;
                 var c4 = ValueTool.GetHexValue(MDRS_lblAreaP.Value).HasValue;
                 var c5 = ValueTool.GetHexValue(MDRS_lblAreaM.Value).HasValue;
                 var c6 = ValueTool.GetHexValue(MDRS_lblAreaT.Value).HasValue;
@@ -616,7 +606,7 @@ namespace LadderEditor.Forms
                 if (!c9) ret.Add("· WP 영역 시작주소를 입력하세요.");
                 if (!c10) ret.Add("· WM 영역 시작주소를 입력하세요.");
             }
-            else if(tab.SelectedTab == tpMDRM)
+            else if (tab.SelectedTab == tpMDRM)
             {
                 var c1 = !string.IsNullOrWhiteSpace(MDRM_inPort.Value);
                 var c2 = MDRM_inBaudrate.SelectedIndex >= 0;
@@ -627,7 +617,7 @@ namespace LadderEditor.Forms
             else if (tab.SelectedTab == tpMDTS)
             {
                 var n = 0;
-                var c1 = int.TryParse(MDTS_inSlave.Value, out n) && n >= 0 && n <= 255;
+                var c1 = MDTS_inSlave.Value.HasValue && MDTS_inSlave.Value.Value >= 0 && MDTS_inSlave.Value.Value <= 255;
                 var c2 = ValueTool.GetHexValue(MDTS_lblAreaP.Value).HasValue;
                 var c3 = ValueTool.GetHexValue(MDTS_lblAreaM.Value).HasValue;
                 var c4 = ValueTool.GetHexValue(MDTS_lblAreaT.Value).HasValue;
@@ -679,7 +669,7 @@ namespace LadderEditor.Forms
             #endregion
 
             ILadderComm ret = null;
-            if(this.ShowDialog() == DialogResult.OK)
+            if (this.ShowDialog() == DialogResult.OK)
             {
                 ret = GetResult();
             }
@@ -751,7 +741,7 @@ namespace LadderEditor.Forms
             {
                 var vm = v as LcModbusTcpSlave;
                 var tm = MDTS;
-                
+
                 tm.Slave = vm.Slave;
                 tm.P_BaseAddress = vm.P_BaseAddress;
                 tm.M_BaseAddress = vm.M_BaseAddress;
@@ -817,77 +807,110 @@ namespace LadderEditor.Forms
         }
         #endregion
         #endregion
+
     }
 
-    #region Cell
+    #region class : AddressCell
     public class AddressCell : DvDataGridCell
     {
         #region Properties
         public bool ReadOnly { get; set; }
         #endregion
+
+        #region Member Variable
+        string sVal = "";
+        object old;
+        #endregion
+
         #region Constructor
         public AddressCell(DvDataGrid Grid, DvDataGridRow Row, DvDataGridColumn Column) : base(Grid, Row, Column)
         {
+            sVal = Value.ToString();
         }
         #endregion
-        #region Override
-        #region CellPaint
-        public override void CellPaint(DvTheme Theme, Graphics g, Rectangle CellBounds)
-        {
-            var f = Grid.DpiRatio;
-            var cTextBack = CellBackColor.BrightnessTransmit(-0.2);
-            var rt = new Rectangle(CellBounds.X, CellBounds.Y, CellBounds.Width, CellBounds.Height); rt.Inflate(-Convert.ToInt32(2 * f), -Convert.ToInt32(2 * f));
-            Theme.DrawBox(g, cTextBack, cTextBack, rt, RoundType.NONE, BoxDrawOption.BORDER);
-            if (Value != null)
-            {
-                var s = "";
 
-                if (Value is int)
-                {
-                    var v = (int)Value;
-                    s = $"0x{v.ToString("X4")}";
-                }
+        #region Override
+        #region CellDraw
+        public override void CellDraw(Graphics g, DvTheme Theme, RectangleF CellBounds, DvDataGridCellDrawInfo Info)
+        {
+            var CellTextColor = this.CellTextColor ?? Grid.ForeColor;
+            var CellBackColor = this.CellBackColor ?? Grid.GetRowColor(Theme);
+            var SelectedCellBackColor = this.SelectedCellBackColor ?? Grid.GetSelectedRowColor(Theme);
+            var BoxColor = (Row.Selected ? SelectedCellBackColor : CellBackColor).BrightnessTransmit(Theme.DataGridInputBright);
+
+            var nc = Grid;
+            var s = "";
+            var Font = nc.Font;
+            var val = Value;
+
+            Theme.DrawBox(g, CellBounds, BoxColor, BoxColor.BrightnessTransmit(Theme.BorderBrightness), RoundType.Rect, BoxStyle.Fill);
+            if (Value != null && Value is int)
+            {
+                var v = (int)Value;
+                #region Value
+                s = ValueTool.GetHexString(v);
                 
                 if (!string.IsNullOrWhiteSpace(s))
                 {
-                    var c = CellTextColor;
-                    var bg = (Row.Selected ? SelectedCellBackColor : CellBackColor);
-                    if (Grid.TextShadow) Theme.DrawTextShadow(g, null, s, Grid.Font, c, bg, rt);
-                    else Theme.DrawText(g, null, s, Grid.Font, c, bg, rt);
+                    Theme.DrawText(g, s, Font, CellTextColor, CellBounds);
                 }
+                #endregion
             }
-            base.CellPaint(Theme, g, CellBounds);
+            Info.Bevel = false;
+            base.CellDraw(g, Theme, CellBounds, Info);
+        }
+        #endregion
+        #region CellMouseDown
+        DateTime downTime;
+        Point downPoint;
+        public override void CellMouseDown(RectangleF CellBounds, int x, int y)
+        {
+            if (CollisionTool.Check(CellBounds, x, y) && !ReadOnly)
+            {
+                downPoint = new Point(x, y);
+                downTime = DateTime.Now;
+            }
+            base.CellMouseDown(CellBounds, x, y);
         }
         #endregion
         #region CellMouseUp
-        public override void CellMouseUp(Rectangle CellBounds, int x, int y)
+        public override void CellMouseUp(RectangleF CellBounds, int x, int y)
         {
-            if (CollisionTool.Check(CellBounds, x, y))
+            if (CollisionTool.Check(CellBounds, x, y) && !ReadOnly && MathTool.GetDistance(downPoint, new Point(x, y)) < 10)
             {
-                var frm = Grid.FindForm() as DvForm;
-                if (frm != null) frm.Block = true;
-                var ret = Program.InputBox.ShowString(Column.HeaderText, "입력", "0x" + ((int)Value).ToString("X4"));
-                int n;
-                if (ret != null)
-                {
-                    var r = ValueTool.GetHexValue(ret);
-                    if(r.HasValue)
-                    {
-                        var v = r.Value;
-                        if (v != (int)Value)
-                        {
-                            var old = Value;
-                            Value = v;
-                            Grid.InvokeValueChanged(this, old, v);
-                        }
-                    }
-                }
-                if (frm != null) frm.Block = false;
-            }
+                #region Click
+                var Wnd = Grid.FindForm() as DvForm;
+                var Theme = Grid.GetTheme();
 
+                var CellBackColor = this.CellBackColor ?? Grid.GetRowColor(Theme);
+                var SelectedCellBackColor = this.SelectedCellBackColor ?? Grid.GetSelectedRowColor(Theme);
+                var BoxColor = (Row.Selected ? SelectedCellBackColor : CellBackColor).BrightnessTransmit(Theme.DataGridInputBright);
+                if (CollisionTool.Check(CellBounds, x, y))
+                {
+                    Wnd.Block = true;
+
+                    var ret = ValueTool.GetHexValue(Program.InputBox.ShowString(Column.HeaderText, ValueTool.GetHexString((int?)Value ?? 0)) ?? "");
+                    if (ret.HasValue && !((object)ret.Value).Equals(Value))
+                    {
+                        #region Set
+                        var val = ret.Value;
+                        var old = Value;
+                        Value = val;
+                        Grid.InvokeValueChanged(this, old, (object)(ret.Value));
+                        #endregion
+                    }
+
+                    Wnd.Block = false;
+
+                }
+                #endregion
+            }
             base.CellMouseUp(CellBounds, x, y);
         }
         #endregion
+        #endregion
+
+        #region Method
         #endregion
     }
     #endregion

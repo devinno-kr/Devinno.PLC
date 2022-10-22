@@ -10,11 +10,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+
 namespace LadderEditor.Forms
 {
     public partial class FormDescription : DvForm
     {
-        #region [Class] Reulst
+        #region class : Reulst
         public class Result
         {
             public string Title { get; set; }
@@ -37,6 +38,7 @@ namespace LadderEditor.Forms
         }
         #endregion
 
+        #region Method
         #region ShowDescription
         public Result ShowDescription(LadderDocument doc)
         {
@@ -65,6 +67,7 @@ namespace LadderEditor.Forms
 
             return ret;
         }
+        #endregion
         #endregion
     }
 }

@@ -9,6 +9,7 @@
     <Description>PLC Runtime Library</Description>
     <Authors>Devinno</Authors>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +35,12 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Devinno.PLC.Library\Devinno.PLC.Library.csproj" />
   </ItemGroup>
 
 </Project>

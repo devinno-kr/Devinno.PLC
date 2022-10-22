@@ -1,4 +1,5 @@
-﻿using Devinno.Tools;
+﻿using Devinno.PLC.Library;
+using Devinno.Tools;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
@@ -242,7 +243,7 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region ValidCheck
-        public static List<LadderCheckMessage> ValidCheck(LadderDocument doc)
+        public static List<LadderCheckMessage> ValidCheck(LadderDocument doc, bool Editor)
         {
             var ret = new List<LadderCheckMessage>();
 
@@ -269,6 +270,19 @@ namespace Devinno.PLC.Ladder
                         });
                     }
                 }
+            }
+            #endregion
+
+            #region 잘못된 주석
+            var els = doc.Ladders.Where(x => x.ItemType == LadderItemType.NONE && !(((x.Code.StartsWith("#") && x.Col == 0) || x.Code.StartsWith("'")))).ToList();
+            foreach(var v in els)
+            {
+                ret.Add(new LadderCheckMessage()
+                {
+                    Row = v.Row + 1,
+                    Column = v.Col + 1,
+                    Message = "잘못된 구문입니다."
+                });
             }
             #endregion
 
@@ -350,7 +364,7 @@ namespace Devinno.PLC.Ladder
                 #region Compile Check
                 var codes = MakeCode(doc);
                 var file = Path.GetRandomFileName();
-                var rv = Compile(codes, file);
+                var rv = Compile(codes, file, doc.References, Editor);
                 var lines = codes[0].Replace("\r\n", "\n").Split('\n');
                 if (!rv.Result.Success)
                 {
@@ -409,7 +423,7 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Compile
-        public static CompileResult Compile(string[] codes, string assemblyName)
+        public static CompileResult Compile(string[] codes, string assemblyName, List<LadderReference> References, bool Editor)
         {
             CompileResult ret = null;
             if (codes != null)
@@ -418,16 +432,24 @@ namespace Devinno.PLC.Ladder
                 var syntaxTrees = codes.Select(x => CSharpSyntaxTree.ParseText(x)).ToArray();
 
                 var dir = Path.GetDirectoryName(typeof(Object).GetTypeInfo().Assembly.Location);
-                var refPaths = new[] {
+                var refPaths = new string[] {
                     typeof(System.Object).GetTypeInfo().Assembly.Location,
                     typeof(System.Linq.Enumerable).GetTypeInfo().Assembly.Location,
                     typeof(System.Collections.Generic.CollectionExtensions).GetTypeInfo().Assembly.Location,
 
                     typeof(CollisionTool).GetTypeInfo().Assembly.Location,
                     typeof(LadderBase).GetTypeInfo().Assembly.Location,
+                    typeof(ILadderLibrary).GetTypeInfo().Assembly.Location,
 
                     Path.Combine(Path.GetDirectoryName(typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly.Location), "System.Runtime.dll")
-                };
+                }.ToList();
+
+                foreach (var v in References.ToLookup(x => x.DllPath))
+                {
+                    var vdir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Libraries", Path.GetFileNameWithoutExtension(v.Key));
+                    foreach (var vpath in Directory.GetFiles(vdir)) refPaths.Add(Path.Combine(vdir, vpath));
+                }
+                           
                 var references = refPaths.Select(r => MetadataReference.CreateFromFile(r)).ToArray();
                 var compilation = CSharpCompilation.Create(
                    assemblyName,
@@ -456,7 +478,7 @@ namespace Devinno.PLC.Ladder
             for (int i = 0; i < lstItem.Count; i++)
             {
                 LadderItem itm = lstItem[i];
-                if (itm.Col == 0)
+                if (itm.Col == 0 && itm.ItemType != LadderItemType.NONE)
                 {
                     List<List<LadderItem>> result = new List<List<LadderItem>>();
                     List<List<LadderItem>> faild = new List<List<LadderItem>>();
@@ -501,7 +523,7 @@ namespace Devinno.PLC.Ladder
             for (int i = 0; i < lstItem.Count; i++)
             {
                 LadderItem itm = lstItem[i];
-                if (itm.Col == 0)
+                if (itm.Col == 0 && itm.ItemType != LadderItemType.NONE)
                 {
                     List<List<LadderItem>> result = new List<List<LadderItem>>();
                     List<List<LadderItem>> faild = new List<List<LadderItem>>();
@@ -563,6 +585,12 @@ namespace Devinno.PLC.Ladder
                 sb.AppendLine("     public partial class LadderApp : LadderBase");
                 sb.AppendLine("     {");
                 sb.AppendLine("");
+                #region Reference
+                foreach (var v in doc.References.Where(x => !string.IsNullOrWhiteSpace(x.InstanceName)))
+                {
+                    sb.AppendLine($"         {v.TypeName} {v.InstanceName} = new {v.TypeName}();");
+                }
+                #endregion
                 #region Declare Ladder Variable
                 {
                     foreach (var v in doc.Ladders.OrderBy(x => x.Row).ThenBy(x => x.Col))
@@ -588,13 +616,13 @@ namespace Devinno.PLC.Ladder
                 sb.AppendLine("         public override void LadderLoop()");
                 sb.AppendLine("         {");
                 #region Load Special Relay
-                sb.AppendLine("             bool SR_ON  = _SR_ON,  SR_OFF  = _SR_OFF,  SR_BEGIN = _SR_BEGIN;         ");
-                sb.AppendLine("             bool SR_10  = _SR_10,  SR_100  = _SR_100,  SR_1000  = _SR_1000;          ");
-                sb.AppendLine("             bool SR_F10 = _SR_F10, SR_F100 = _SR_F100, SR_F1000 = _SR_F1000;         ");
-                sb.AppendLine("                                                                                      ");
-                sb.AppendLine("             if( _SR_10 ) _SR_10 = false;                                             ");
-                sb.AppendLine("             if( _SR_100 ) _SR_100 = false;                                           ");
-                sb.AppendLine("             if( _SR_1000 ) _SR_1000 = false;                                         ");
+                sb.AppendLine("             bool SR_ON  = _SR_ON,  SR_OFF  = _SR_OFF,  SR_BEGIN = _SR_BEGIN;        ");
+                sb.AppendLine("             bool SR_10R  = _SR_10R,  SR_100R  = _SR_100R,  SR_1000R  = _SR_1000R;   ");
+                sb.AppendLine("             bool SR_F10R = _SR_F10R, SR_F100R = _SR_F100R, SR_F1000R = _SR_F1000R;  ");
+                sb.AppendLine("                                                                                     ");
+                sb.AppendLine("             if( _SR_10R ) _SR_10R = false;                                          ");
+                sb.AppendLine("             if( _SR_100R ) _SR_100R = false;                                        ");
+                sb.AppendLine("             if( _SR_1000R ) _SR_1000R = false;                                      ");
                 #endregion
                 #region Load Memory
                 foreach (var v in doc.Ladders)
@@ -1053,7 +1081,7 @@ namespace Devinno.PLC.Ladder
                     }
                 }
                 #endregion
-                sb.AppendLine("             _SR_BEGIN = false;                                                       ");
+                sb.AppendLine("             _SR_BEGIN = false;                                                      ");
                 sb.AppendLine("         }");
                 sb.AppendLine("     }");
                 sb.AppendLine("}");

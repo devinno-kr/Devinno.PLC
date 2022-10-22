@@ -33,7 +33,7 @@ namespace Devinno.PLC.Ladder
         public int S_Count => LadderBase.MAX_S_COUNT;
 
         public List<SymbolInfo> Symbols { get; set; } = new List<SymbolInfo>();
-
+        public List<LadderReference> References { get; set; } = new List<LadderReference>();
         public string Communications { get; set; }
         #endregion
 
@@ -186,6 +186,7 @@ namespace Devinno.PLC.Ladder
             this.C_Count = doc.C_Count;
             this.D_Count = doc.D_Count;
             this.Communications = doc.Communications;
+            this.References = doc.References;
 
             Serialize.JsonSerializeToFile("ladder.ld", this);
 

@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CS8629: Nullable 값 형식이 null일 수 있습니다.
+dotnet_diagnostic.CS8629.severity = none

@@ -1,40 +1,48 @@
 ﻿using Devinno.Data;
+using Devinno.Forms;
 using Devinno.Forms.Controls;
 using Devinno.Forms.Dialogs;
+using Devinno.Forms.Icons;
 using Devinno.PLC.Ladder;
 using Devinno.Tools;
 using LadderEditor.Datas;
+using LadderEditor.Tools;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace LadderEditor.Forms
 {
     public partial class FormCommunication : DvForm
     {
-        FormCommunicationInput frmInput = new FormCommunicationInput();
+        #region Member Variable
+        FormCommunicationInput frmInput = new FormCommunicationInput() { StartPosition = FormStartPosition.CenterParent };
         List<ILadderComm> Items = new List<ILadderComm>();
+        #endregion
 
+        #region Constructor
         public FormCommunication()
         {
             InitializeComponent();
 
             #region DataGrid
-            dg.Columns.Add(new DvDataGridColumn(dg) { Name = "Name", HeaderText = "통신 유형", SizeMode = SizeMode.Percent, Width = 30, CellType = typeof(DvDataGridLabelCell) });
-            dg.Columns.Add(new DvDataGridColumn(dg) { Name = "Summary", HeaderText = "정보", SizeMode = SizeMode.Percent, Width = 70, CellType = typeof(DvDataGridLabelCell) });
-            dg.Columns.Add(new DvDataGridButtonColumn(dg) { Name = "Tag", HeaderText = "", SizeMode = SizeMode.Pixel, Width = 50, ButtonText = "..." });
+            dg.Columns.Add(new DvDataGridColumn(dg) { Name = "Name", HeaderText = "통신 유형", SizeMode = DvSizeMode.Percent, Width = 30, CellType = typeof(DvDataGridLabelCell) });
+            dg.Columns.Add(new DvDataGridColumn(dg) { Name = "Summary", HeaderText = "정보", SizeMode = DvSizeMode.Percent, Width = 70, CellType = typeof(DvDataGridLabelCell) });
+            dg.Columns.Add(new DvDataGridButtonColumn(dg) { Name = "Tag", HeaderText = "", SizeMode = DvSizeMode.Pixel, Width = 50, Text = "..." });
 
-            dg.UseThemeColor = false;
             dg.ColumnColor = Color.FromArgb(30, 30, 30);
-            dg.SelectionMode = DvDataGridSelectionMode.SELECTOR;
+            dg.SelectionMode = DvDataGridSelectionMode.Selector;
+            #endregion
+            
+            #region Buttons 
+            btnPM.Buttons.Add(new ButtonInfo("Add") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            btnPM.Buttons.Add(new ButtonInfo("Del") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
             #endregion
 
+            #region Event
+            #region dg.CellButtonClick
             dg.CellButtonClick += (o, s) => {
 
                 var v = s.Cell.Row.Source as ILadderComm;
@@ -54,45 +62,49 @@ namespace LadderEditor.Forms
                 }
 
             };
-
+            #endregion
             #region btn[OK/Cancel].ButtonClick
             btnOK.ButtonClick += (o, s) => DialogResult = DialogResult.OK;
             btnCancel.ButtonClick += (o, s) => DialogResult = DialogResult.Cancel;
             #endregion
             #region btnPlus.ButtonClick
-            btnPlus.ButtonClick += (o, s) =>
+            btnPM.ButtonClick += (o, s) =>
             {
-                Block = true;
-                ILadderComm ret = frmInput.ShowCommInputAdd();
-                Block = false;
-
-                if(ret != null)
+                if(s.Button.Name == "Add")
                 {
-                    Items.Add(ret);
-                    dg.SetDataSource<ILadderComm>(Items);
+                    Block = true;
+                    ILadderComm ret = frmInput.ShowCommInputAdd();
+                    Block = false;
+
+                    if (ret != null)
+                    {
+                        Items.Add(ret);
+                        dg.SetDataSource<ILadderComm>(Items);
+                    }
+                }
+                else if(s.Button.Name == "Del")
+                {
+                    var sels = dg.Rows.Where(x => x.Selected).Select(x => x.Source as ILadderComm).ToList();
+                    if (sels.Count > 0)
+                    {
+                        foreach (var v in sels)
+                            if (Items.Contains(v))
+                                Items.Remove(v);
+
+                        dg.SetDataSource<ILadderComm>(Items);
+                    }
                 }
             };
             #endregion
-            #region btnMinus.ButtonClick
-            btnMinus.ButtonClick += (o, s) =>
-            {
-                var sels = dg.Rows.Where(x => x.Selected).Select(x => x.Source as ILadderComm).ToList();
-                if (sels.Count > 0)
-                {
-                    foreach (var v in sels)
-                        if (Items.Contains(v))
-                            Items.Remove(v);
-                 
-                    dg.SetDataSource<ILadderComm>(Items);
-                }
-            };
             #endregion
 
-            #region Form Props
+            #region Icon
+            Icon = IconTool.GetIcon(new DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
+            #endregion
+
             StartPosition = FormStartPosition.CenterParent;
-            this.Icon = Tools.IconTool.GetIcon(new Devinno.Forms.Icons.DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
-            #endregion
         }
+        #endregion
 
         #region Method
         #region ShowCommunication
@@ -114,7 +126,7 @@ namespace LadderEditor.Forms
             #endregion
 
             List<ILadderComm> ret = null;
-            if(this.ShowDialog() == DialogResult.OK)
+            if (this.ShowDialog() == DialogResult.OK)
             {
                 ret = Items.ToList();
             }

@@ -5,13 +5,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace LadderEditor.Datas
 {
-    public class EditorLadderDocument : LadderDocument 
+    public class EditorLadderDocument : LadderDocument
     {
         #region Properties
         [Newtonsoft.Json.JsonIgnore]
@@ -44,7 +43,7 @@ namespace LadderEditor.Datas
         #region SaveAs
         public void SaveAs()
         {
-            using(var sfd = new SaveFileDialog())
+            using (var sfd = new SaveFileDialog())
             {
                 sfd.Filter = "Ladder File|*.dld";
                 if (sfd.ShowDialog() == DialogResult.OK)

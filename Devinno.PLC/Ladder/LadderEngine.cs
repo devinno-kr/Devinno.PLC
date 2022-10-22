@@ -16,6 +16,8 @@ using Thread = System.Threading.Thread;
 using ThreadStart = System.Threading.ThreadStart;
 using Devinno.Communications.Mqtt;
 using Devinno.Communications;
+using System.Threading;
+using System.Reflection;
 
 namespace Devinno.PLC.Ladder
 {
@@ -138,12 +140,27 @@ namespace Devinno.PLC.Ladder
                             {
                                 State = EngineState.DOWNLOADING;
 
-                                var th = new Thread(new ThreadStart(() =>
+                                ThreadPool.QueueUserWorkItem((o) =>
                                 {
-                                    var doc = Serialize.JsonDeserialize<LadderDocument>(e.RequestMessage);
+                                    var dnv = Serialize.JsonDeserialize<DNV>(e.RequestMessage);
+                                    var path_lib = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Libraries");
+                                    if (!Directory.Exists(path_lib)) Directory.CreateDirectory(path_lib);
+
+                                    foreach (var libnm in dnv.Files.Keys)
+                                    {
+                                        var path_lib_v = Path.Combine(path_lib, libnm);
+                                        if (!Directory.Exists(path_lib_v)) Directory.CreateDirectory(path_lib_v);
+
+                                        foreach (var vk in dnv.Files[libnm].Keys)
+                                        {
+                                            File.WriteAllBytes(Path.Combine(path_lib_v, vk), dnv.Files[libnm][vk]);
+                                        }
+                                    }
+
+                                    var doc = Serialize.JsonDeserialize<LadderDocument>(Encoding.UTF8.GetString(dnv.DocBin));
 
                                     var codes = LadderTool.MakeCode(doc);
-                                    var rv = LadderTool.Compile(codes, PATH_APP);
+                                    var rv = LadderTool.Compile(codes, PATH_APP, doc.References, false);
                                     if (rv.Result.Success)
                                     {
                                         Document.Download(doc);
@@ -152,10 +169,8 @@ namespace Devinno.PLC.Ladder
                                     }
                                     else State = EngineState.STANDBY;
 
-                                }))
-                                { IsBackground = true };
-                                th.Start();
-
+                                });
+                                
                                 e.ResponseMessage = Serialize.JsonSerialize(new PacketResult() { Message = "OK" });
                             }
                             else
@@ -202,6 +217,7 @@ namespace Devinno.PLC.Ladder
                         }
                         break;
                         #endregion
+                        
                 }
             }
             catch (Exception ex) { }
@@ -285,5 +301,11 @@ namespace Devinno.PLC.Ladder
 
     }
 
-
+    #region class : DNV
+    class DNV
+    {
+        public Dictionary<string, Dictionary<string, byte[]>> Files { get; set; } = new Dictionary<string, Dictionary<string, byte[]>>();
+        public byte[] DocBin { get; set; }
+    }
+    #endregion
 }

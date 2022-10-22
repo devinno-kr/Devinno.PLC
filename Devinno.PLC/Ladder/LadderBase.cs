@@ -82,8 +82,8 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Member Variable
-        protected bool _SR_10 = false, _SR_100 = false, _SR_1000 = false;
-        protected bool _SR_F10 = false, _SR_F100 = false, _SR_F1000 = false;
+        protected bool _SR_10R = false, _SR_100R = false, _SR_1000R = false;
+        protected bool _SR_F10R = false, _SR_F100R = false, _SR_F1000R = false;
         protected bool _SR_BEGIN = false;
         protected bool _100_ = false, _1000_ = false;
         protected int _CNT100 = 0, _CNT1000 = 0;
@@ -163,20 +163,20 @@ namespace Devinno.PLC.Ladder
             _100_ = _CNT100 >= 10;
             _1000_ = _CNT1000 >= 1000;
 
-            _SR_10 = true;
-            _SR_F10 = !_SR_F10;
+            _SR_10R = true;
+            _SR_F10R = !_SR_F10R;
 
             if (_CNT100 >= 10)
             {
-                _SR_100 = true;
-                _SR_F100 = !_SR_F100;
+                _SR_100R = true;
+                _SR_F100R = !_SR_F100R;
                 _CNT100 = 0;
             }
 
             if (_CNT1000 >= 100)
             {
-                _SR_1000 = true;
-                _SR_F1000 = !_SR_F1000;
+                _SR_1000R = true;
+                _SR_F1000R = !_SR_F1000R;
                 _CNT1000 = 0;
             }
             #endregion

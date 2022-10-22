@@ -2,6 +2,7 @@
 using Devinno.Forms;
 using Devinno.Forms.Controls;
 using Devinno.Forms.Dialogs;
+using Devinno.Forms.Icons;
 using Devinno.Forms.Themes;
 using Devinno.PLC.Ladder;
 using Devinno.Tools;
@@ -38,7 +39,7 @@ namespace LadderEditor.Forms
         #region Member Variable
         EditorLadderDocument doc;
         Result Data = new Result();
-        FormNumberBox frmNumBox;
+        DvInputBox frmNumBox;
         FormSymbolImport frmSymbolImport;
         #endregion
 
@@ -48,32 +49,38 @@ namespace LadderEditor.Forms
             InitializeComponent();
 
             #region DataGrid
-            dg.Columns.Add(new DvDataGridColumn(dg) { Name = "Address", HeaderText = "주소", SizeMode = SizeMode.Percent, Width = 50, CellType = typeof(EditCell), UseSort = true, UseFilter = true });
-            dg.Columns.Add(new DvDataGridColumn(dg) { Name = "SymbolName", HeaderText = "명칭", SizeMode = SizeMode.Percent, Width = 50, CellType = typeof(EditCell), UseSort = true, UseFilter = true });
-            dg.UseThemeColor = false;
+            dg.Columns.Add(new DvDataGridEditTextColumn(dg) { Name = "Address", HeaderText = "주소", SizeMode = DvSizeMode.Percent, Width = 50, UseSort = true, UseFilter = true });
+            dg.Columns.Add(new DvDataGridEditTextColumn(dg) { Name = "SymbolName", HeaderText = "명칭", SizeMode = DvSizeMode.Percent, Width = 50, UseSort = true, UseFilter = true });
             dg.ColumnColor = Color.FromArgb(30, 30, 30);
-            dg.SelectionMode = DvDataGridSelectionMode.SELECTOR;
+            dg.SelectionMode = DvDataGridSelectionMode.Selector;
             #endregion
             #region Forms
-            frmNumBox = new FormNumberBox();
-            frmSymbolImport = new FormSymbolImport();
+            frmNumBox = new DvInputBox() { StartPosition = FormStartPosition.CenterParent };
+            frmSymbolImport = new FormSymbolImport() { StartPosition = FormStartPosition.CenterParent };
+            #endregion
+            #region Buttons
+            btnPM.Buttons.Add(new ButtonInfo("Plus") { IconString = "fa-plus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
+            btnPM.Buttons.Add(new ButtonInfo("Minus") { IconString = "fa-minus", IconSize = 12, Size = new SizeInfo(DvSizeMode.Percent, 50) });
             #endregion
 
             #region lbl[P/M/T/C/D/F].ButtonClick
-            lblP.ButtonClick += (o, s) => { Block = true; var r = frmNumBox.ShowNumberBox("P 영역 크기", 128, LadderBase.MAX_P_COUNT, 8, Data.P_Count); if (r.HasValue) Data.P_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
-            lblM.ButtonClick += (o, s) => { Block = true; var r = frmNumBox.ShowNumberBox("M 영역 크기", 128, LadderBase.MAX_M_COUNT, 8, Data.M_Count); if (r.HasValue) Data.M_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
-            lblT.ButtonClick += (o, s) => { Block = true; var r = frmNumBox.ShowNumberBox("T 영역 크기", 128, LadderBase.MAX_T_COUNT, 8, Data.T_Count); if (r.HasValue) Data.T_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
-            lblC.ButtonClick += (o, s) => { Block = true; var r = frmNumBox.ShowNumberBox("C 영역 크기", 128, LadderBase.MAX_C_COUNT, 8, Data.C_Count); if (r.HasValue) Data.C_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
-            lblD.ButtonClick += (o, s) => { Block = true; var r = frmNumBox.ShowNumberBox("D 영역 크기", 64, LadderBase.MAX_D_COUNT, 1, Data.D_Count); if (r.HasValue) Data.D_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
-            lblR.ButtonClick += (o, s) => { Block = true; var r = frmNumBox.ShowNumberBox("R 영역 크기", 64, LadderBase.MAX_R_COUNT, 1, Data.R_Count); if (r.HasValue) Data.R_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
+            lblP.ButtonClicked += (o, s) => { Block = true; var r = frmNumBox.ShowInt("P 영역 크기", Data.P_Count, 128, LadderBase.MAX_P_COUNT); if (r.HasValue) Data.P_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
+            lblM.ButtonClicked += (o, s) => { Block = true; var r = frmNumBox.ShowInt("M 영역 크기", Data.M_Count, 128, LadderBase.MAX_M_COUNT); if (r.HasValue) Data.M_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
+            lblT.ButtonClicked += (o, s) => { Block = true; var r = frmNumBox.ShowInt("T 영역 크기", Data.T_Count, 128, LadderBase.MAX_T_COUNT); if (r.HasValue) Data.T_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
+            lblC.ButtonClicked += (o, s) => { Block = true; var r = frmNumBox.ShowInt("C 영역 크기", Data.C_Count, 128, LadderBase.MAX_C_COUNT); if (r.HasValue) Data.C_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
+            lblD.ButtonClicked += (o, s) => { Block = true; var r = frmNumBox.ShowInt("D 영역 크기", Data.D_Count, 64, LadderBase.MAX_D_COUNT); if (r.HasValue) Data.D_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
+            lblR.ButtonClicked += (o, s) => { Block = true; var r = frmNumBox.ShowInt("R 영역 크기", Data.R_Count, 64, LadderBase.MAX_R_COUNT); if (r.HasValue) Data.R_Count = Convert.ToInt32(r.Value); Block = false; Set(); };
             #endregion
             #region btn[OK/Cancel].ButtonClick
-            btnOK.ButtonClick += (o, s) => { if (ValidCheck()) DialogResult = DialogResult.OK;  };
+            btnOK.ButtonClick += (o, s) => { if (ValidCheck()) DialogResult = DialogResult.OK; };
             btnCancel.ButtonClick += (o, s) => DialogResult = DialogResult.Cancel;
             #endregion
-            #region btn[Add/Del].ButtonClick
-            btnAdd.ButtonClick += (o, s) => Add();
-            btnDel.ButtonClick += (o, s) => Del();
+            #region btnPM.ButtonClick
+            btnPM.ButtonClick += (o, s) =>
+            {
+                if (s.Button.Name == "Plus") Add();
+                if (s.Button.Name == "Minus") Del();
+            };
             #endregion
             #region btnImport.ButtonClick
             btnImport.ButtonClick += (o, s) =>
@@ -91,7 +98,7 @@ namespace LadderEditor.Forms
             #region  txt.OriginalTextBox.KeyPress
             txt.OriginalTextBox.KeyPress += (o, s) =>
             {
-                if(s.KeyChar == '\r')
+                if (s.KeyChar == '\r')
                 {
                     Add();
                 }
@@ -153,16 +160,20 @@ namespace LadderEditor.Forms
                         }))
                         { IsBackground = true };
                         th.Start();
-                        
+
                     }
                 }
-            
+
             };
             #endregion
 
             #region Form Props
             StartPosition = FormStartPosition.CenterParent;
             this.Icon = Tools.IconTool.GetIcon(new Devinno.Forms.Icons.DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
+            #endregion
+
+            #region Icon
+            Icon = IconTool.GetIcon(new DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
             #endregion
         }
         #endregion
@@ -181,14 +192,15 @@ namespace LadderEditor.Forms
         {
             if (Data != null)
             {
-                lblP.Value = Data.P_Count.ToString();
-                lblM.Value = Data.M_Count.ToString();
-                lblT.Value = Data.T_Count.ToString();
-                lblC.Value = Data.C_Count.ToString();
-                lblD.Value = Data.D_Count.ToString();
-                lblR.Value = Data.R_Count.ToString();
+                lblP.Value = Data.P_Count;
+                lblM.Value = Data.M_Count;
+                lblT.Value = Data.T_Count;
+                lblC.Value = Data.C_Count;
+                lblD.Value = Data.D_Count;
+                lblR.Value = Data.R_Count;
 
                 dg.SetDataSource<SymbolInfo>(Data.Symbols);
+                dg.Invalidate();
                 ValidCheck();
             }
         }
@@ -264,6 +276,7 @@ namespace LadderEditor.Forms
         public Result ShowSymbol(EditorLadderDocument doc)
         {
             Result ret = null;
+            
             #region Set
             this.doc = doc;
             Data = new Result();
@@ -279,81 +292,18 @@ namespace LadderEditor.Forms
             }
             Set();
             #endregion
-
+            #region ShowDialog
             if (this.ShowDialog() == DialogResult.OK)
             {
                 ret = Data;
             }
+            #endregion
 
             return ret;
         }
         #endregion
-        #endregion
 
+        #endregion
     }
 
-    #region Cell
-    public class EditCell : DvDataGridCell
-    {
-        #region Properties
-        public bool ReadOnly { get; set; }
-        #endregion
-        #region Constructor
-        public EditCell(DvDataGrid Grid, DvDataGridRow Row, DvDataGridColumn Column) : base(Grid, Row, Column)
-        {
-        }
-        #endregion
-        #region Override
-        #region CellPaint
-        public override void CellPaint(DvTheme Theme, Graphics g, Rectangle CellBounds)
-        {
-            var f = Grid.DpiRatio;
-            var cTextBack = CellBackColor.BrightnessTransmit(-0.2);
-            var rt = new Rectangle(CellBounds.X, CellBounds.Y, CellBounds.Width, CellBounds.Height); rt.Inflate(-Convert.ToInt32(2 * f), -Convert.ToInt32(2 * f));
-            Theme.DrawBox(g, cTextBack, cTextBack, rt, RoundType.NONE, BoxDrawOption.BORDER);
-            if (Value != null)
-            {
-                var s = "";
-
-                if (Value is string) s = (string)Value;
-                else s = Value.ToString();
-
-                if (!string.IsNullOrWhiteSpace(s))
-                {
-                    var c = CellTextColor;
-                    var bg = (Row.Selected ? SelectedCellBackColor : CellBackColor);
-                    if (Grid.TextShadow) Theme.DrawTextShadow(g, null, s, Grid.Font, c, bg, rt);
-                    else Theme.DrawText(g, null, s, Grid.Font, c, bg, rt);
-                }
-            }
-            base.CellPaint(Theme, g, CellBounds);
-        }
-        #endregion
-        #region CellMouseUp
-        public override void CellMouseUp(Rectangle CellBounds, int x, int y)
-        {
-            if (CollisionTool.Check(CellBounds, x, y))
-            {
-                var frm = Grid.FindForm() as DvForm;
-                if (frm != null) frm.Block = true;
-                var ret = Program.InputBox.ShowString(Column.HeaderText, "입력", Value as string);
-                if (ret != null)
-                {
-                    var v = ret;
-                    if (v != Value as string)
-                    {
-                        var old = Value;
-                        Value = v;
-                        Grid.InvokeValueChanged(this, old, v);
-                    }
-                }
-                if (frm != null) frm.Block = false;
-            }
-
-            base.CellMouseUp(CellBounds, x, y);
-        }
-        #endregion
-        #endregion
-    }
-    #endregion
 }

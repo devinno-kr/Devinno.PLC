@@ -1,13 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net5.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Devinno.Forms" Version="1.0.0" />
+    <Compile Remove="Controls\LadderEditorControl.Old.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Devinno.Forms" Version="1.1.0" />
     <PackageReference Include="GuiLabs.Undo" Version="1.0.2" />
   </ItemGroup>
 
@@ -28,6 +34,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="AutoCompleteNS\" />
   </ItemGroup>
 
 </Project>

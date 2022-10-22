@@ -39,6 +39,8 @@ namespace Devinno.PLC.Ladder
 
         [JsonIgnore]
         public int Timer { get; set; }
+
+        public bool Expand { get; set; } = true;
         #endregion
 
         #region Constructor
@@ -59,7 +61,8 @@ namespace Devinno.PLC.Ladder
                 Col = this.Col,
                 ItemType = this.ItemType,
                 VerticalLine = this.VerticalLine,
-                Code = this.Code
+                Code = this.Code,
+                Expand = this.Expand,
             };
         }
         public LadderItem CloneWithPositionChange(int row, int col)
@@ -70,7 +73,8 @@ namespace Devinno.PLC.Ladder
                 Col = col,
                 ItemType = this.ItemType,
                 Code = this.Code,
-                VerticalLine = this.VerticalLine
+                VerticalLine = this.VerticalLine,
+                Expand = this.Expand,
             };
         }
         #endregion
@@ -82,6 +86,7 @@ namespace Devinno.PLC.Ladder
             this.ItemType = ItemType;
             this.VerticalLine = v.VerticalLine;
             this.Code = v.Code;
+            this.Expand = v.Expand;
         }
         #endregion
         #region CompareTo

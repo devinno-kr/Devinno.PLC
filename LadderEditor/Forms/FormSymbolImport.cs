@@ -1,6 +1,6 @@
 ﻿using Devinno.Forms.Dialogs;
+using Devinno.Forms.Icons;
 using Devinno.PLC.Ladder;
-using LadderEditor.Datas;
 using LadderEditor.Tools;
 using System;
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace LadderEditor.Forms
 {
     public partial class FormSymbolImport : DvForm
     {
-        #region [Class] Result
+        #region class : Result
         public class Result
         {
             public List<SymbolInfo> List { get; set; } = new List<SymbolInfo>();
@@ -41,6 +41,10 @@ namespace LadderEditor.Forms
             #region Form Props
             StartPosition = FormStartPosition.CenterParent;
             this.Icon = Tools.IconTool.GetIcon(new Devinno.Forms.Icons.DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
+            #endregion
+
+            #region Icon
+            Icon = IconTool.GetIcon(new DvIcon(TitleIconString, Convert.ToInt32(TitleIconSize)), Program.ICO_WH, Program.ICO_WH, Color.White);
             #endregion
         }
         #endregion
@@ -79,14 +83,14 @@ namespace LadderEditor.Forms
                         else
                         {
                             ret &= r.Success;
-                            txt.Select();
-                            txt.SelectionStart = offset;
-                            txt.SelectionLength = v.Length;
+                            txt.OriginalTextBox.Select();
+                            txt.OriginalTextBox.SelectionStart = offset;
+                            txt.OriginalTextBox.SelectionLength = v.Length;
                             lblMessage.Text = r.Message;
                             break;
                         }
                     }
-                    offset += v.Length + (!sr.EndOfStream ? 1: 0);
+                    offset += v.Length + (!sr.EndOfStream ? 1 : 0);
                 }
             }
 
@@ -99,7 +103,7 @@ namespace LadderEditor.Forms
             this.Data = Data;
             txt.Text = "";
             Result ret = null;
-            if(this.ShowDialog() == DialogResult.OK)
+            if (this.ShowDialog() == DialogResult.OK)
             {
                 ret = new Result();
                 var vtxt = txt.Text;
