@@ -1,1 +1,1 @@
-Devinno 라이브러리
+Devinno PLC 라이브러리
