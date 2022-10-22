@@ -7,6 +7,9 @@
     <PackageIconUrl />
     <Description>PLC Libary Interface</Description>
     <Platforms>AnyCPU;x64;x86</Platforms>
+    <PackageProjectUrl>https://github.com/devinno-kr/Devinno.PLC</PackageProjectUrl>
+    <Authors>Devinno</Authors>
+    <Version>1.0.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
