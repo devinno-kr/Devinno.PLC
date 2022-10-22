@@ -274,7 +274,7 @@ namespace Devinno.PLC.Ladder
             #endregion
 
             #region 잘못된 주석
-            var els = doc.Ladders.Where(x => x.ItemType == LadderItemType.NONE && !(((x.Code.StartsWith("#") && x.Col == 0) || x.Code.StartsWith("'")))).ToList();
+            var els = doc.Ladders.Where(x => x.ItemType == LadderItemType.NONE && !(((x.Code.StartsWith("#") && x.Col == 0) || x.Code.StartsWith("'") || string.IsNullOrWhiteSpace(x.Code)))).ToList();
             foreach(var v in els)
             {
                 ret.Add(new LadderCheckMessage()
