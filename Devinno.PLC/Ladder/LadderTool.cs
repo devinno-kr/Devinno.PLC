@@ -878,6 +878,67 @@ namespace Devinno.PLC.Ladder
                                                             sb.AppendLine($"                     MCS[{idx}].Value = false;                                  //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
+                                                    #endregion
+                                                    #region WXCHG
+                                                    case "WXCHG":
+                                                        {
+                                                            var addr1 = doc.GetSymbolAddress(fn.Args[0]);
+                                                            var addr2 = doc.GetSymbolAddress(fn.Args[1]);
+
+                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     if(_result_)                                               //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     {{                                                         //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                        var _tmp_ = {addr1};                                    //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                        {addr1} = {addr2};                                      //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                        {addr2} = _tmp_;                                        //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     }}                                                         //{nd.Row},{nd.Col}");
+
+                                                        }
+                                                        break;
+                                                    #endregion
+                                                    #region DIST
+                                                    case "DIST":
+                                                        {
+                                                            var addr1 = doc.GetSymbolAddress(fn.Args[0]);
+                                                            var addr2 = doc.GetSymbolAddress(fn.Args[1]);
+                                                            var cnt = Convert.ToInt32(fn.Args[2]);
+
+                                                            var vaddr2 = AddressInfo.Parse(addr2);
+                                                                                                                      
+                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     if(_result_)                                               //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     {{                                                         //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 1) sb.AppendLine($"                        {vaddr2.Code + (vaddr2.Index + 0)} = Convert.ToUInt16(({addr1} & 0xF000) >> 12);                                                         //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 2) sb.AppendLine($"                        {vaddr2.Code + (vaddr2.Index + 1)} = Convert.ToUInt16(({addr1} & 0x0F00) >> 8);                                                         //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 3) sb.AppendLine($"                        {vaddr2.Code + (vaddr2.Index + 2)} = Convert.ToUInt16(({addr1} & 0x00F0) >> 4);                                                         //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 4) sb.AppendLine($"                        {vaddr2.Code + (vaddr2.Index + 3)} = Convert.ToUInt16(({addr1} & 0x000F) >> 0);                                                         //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     }}                                                         //{nd.Row},{nd.Col}");
+
+                                                        }
+                                                        break;
+                                                    #endregion
+                                                    #region UNIT
+                                                    case "UNIT":
+                                                        {
+                                                            var addr1 = doc.GetSymbolAddress(fn.Args[0]);
+                                                            var addr2 = doc.GetSymbolAddress(fn.Args[1]);
+                                                            var cnt = Convert.ToInt32(fn.Args[2]);
+
+                                                            var vaddr1 = AddressInfo.Parse(addr1);
+
+                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     if(_result_)                                               //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     {{                                                         //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                        int n=0;                                             //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 1) sb.AppendLine($"                       n |= {vaddr1.Code + (vaddr1.Index + 0)} << 12;                 //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 2) sb.AppendLine($"                       n |= {vaddr1.Code + (vaddr1.Index + 1)} << 8;                  //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 3) sb.AppendLine($"                       n |= {vaddr1.Code + (vaddr1.Index + 2)} << 4;                  //{nd.Row},{nd.Col}");
+                                                            if (cnt >= 4) sb.AppendLine($"                       n |= {vaddr1.Code + (vaddr1.Index + 3)} << 0;                  //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                        {addr2} = n;                                            //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     }}                                                         //{nd.Row},{nd.Col}");
+
+                                                        }
+                                                        break;
                                                         #endregion
                                                 }
                                             }
@@ -975,7 +1036,7 @@ namespace Devinno.PLC.Ladder
                                                             sb.AppendLine($"                     MCS[{idx}].Value = false;                             //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
-                                                        #endregion
+                                                    #endregion
                                                 }
                                             }
                                             #endregion
@@ -1147,6 +1208,54 @@ namespace Devinno.PLC.Ladder
                             break;
                         case LadderItemType.OUT_FUNC:
                             {
+                                var fn = FuncInfo.Parse(v.Code);
+
+                                if (fn.Name == "DIST")
+                                {
+                                    if (doc.ValidSymbol(fn.Args[0]))
+                                    {
+                                        var addr = doc.GetSymbolAddress(fn.Args[0]);
+                                        if (!ls.Contains(addr)) ls.Add(addr);
+                                    }
+
+                                    if (doc.ValidSymbol(fn.Args[1]))
+                                    {
+                                        var addr = doc.GetSymbolAddress(fn.Args[1]);
+                                        if (doc.ValidAddress(addr))
+                                        {
+                                            var vaddr = AddressInfo.Parse(addr);
+                                            for (int i = 0; i < 4; i++)
+                                            {
+                                                var vmem = vaddr.Code + (vaddr.Index + i);
+                                                if (!ls.Contains(vmem)) ls.Add(vmem);
+                                            }
+                                        }
+                                    }
+                                }
+                                else if(fn.Name == "UNIT")
+                                {
+                                    if (doc.ValidSymbol(fn.Args[0]))
+                                    {
+                                        var addr = doc.GetSymbolAddress(fn.Args[0]);
+                                        if (doc.ValidAddress(addr))
+                                        {
+                                            var vaddr = AddressInfo.Parse(addr);
+                                            for (int i = 0; i < 4; i++)
+                                            {
+                                                var vmem = vaddr.Code + (vaddr.Index + i);
+                                                if (!ls.Contains(vmem)) ls.Add(vmem);
+                                            }
+                                        }
+                                    }
+
+                                    if (doc.ValidSymbol(fn.Args[1]))
+                                    {
+                                        var addr = doc.GetSymbolAddress(fn.Args[1]);
+                                        if (!ls.Contains(addr)) ls.Add(addr);
+                                    }
+                                }
+                                else
+                                {
                                     foreach (var wd in GetWordsForCode(v.Code))
                                     {
                                         if (doc.ValidSymbol(wd))
@@ -1155,6 +1264,7 @@ namespace Devinno.PLC.Ladder
                                             if (!ls.Contains(addr)) ls.Add(addr);
                                         }
                                     }
+                                }
                             }
                             break;
 

@@ -19,8 +19,11 @@ namespace Devinno.PLC.Ladder
         internal static FuncRSTOUT RSTOUT = new FuncRSTOUT();
         internal static FuncMCS MCS = new FuncMCS();
         internal static FuncMCSCLR MCSCLR = new FuncMCSCLR();
+        internal static FuncWXCHG WXCHG = new FuncWXCHG();
+        internal static FuncDIST DIST = new FuncDIST();
+        internal static FuncUNIT UNIT = new FuncUNIT();
 
-        public static ILadderFunc[] Funcs = new ILadderFunc[] { TON, TAON, TOFF, TAOFF, TMON, TAMON, SETOUT, RSTOUT, MCS, MCSCLR };
+        public static ILadderFunc[] Funcs = new ILadderFunc[] { TON, TAON, TOFF, TAOFF, TMON, TAMON, SETOUT, RSTOUT, MCS, MCSCLR, WXCHG, DIST, UNIT };
 
         #region Check
         public static List<LadderCheckMessage> Check(LadderDocument doc, LadderItem ld)
@@ -46,6 +49,9 @@ namespace Devinno.PLC.Ladder
                         case "RSTOUT": ret.AddRange(RSTOUT.Check(doc, ld)); break;
                         case "MCS": ret.AddRange(MCS.Check(doc, ld)); break;
                         case "MCSCLR": ret.AddRange(MCSCLR.Check(doc, ld)); break;
+                        case "WXCHG": ret.AddRange(WXCHG.Check(doc, ld)); break;
+                        case "DIST": ret.AddRange(DIST.Check(doc, ld)); break;
+                        case "UNIT": ret.AddRange(UNIT.Check(doc, ld)); break;
 
                         #region Default
                         default:
@@ -248,6 +254,216 @@ namespace Devinno.PLC.Ladder
                                     Row = ld.Row + 1,
                                     Column = ld.Col + 1,
                                     Message = $"'{Name}' 함수의 번호는 0~15 사이의 값이어야 합니다."
+                                });
+                            }
+                        }
+                        else
+                        {
+                            ret.Add(new LadderCheckMessage()
+                            {
+                                Row = ld.Row + 1,
+                                Column = ld.Col + 1,
+                                Message = $"'{Name}' 함수의 인자 수가 옳바르지 않습니다."
+                            });
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+        #endregion
+        #region CheckWxchgFunction
+        internal static List<LadderCheckMessage> CheckWxchgFunction(string Name, LadderDocument doc, LadderItem ld)
+        {
+            var ret = new List<LadderCheckMessage>();
+
+            if (doc != null && ld != null && ld.ItemType == LadderItemType.OUT_FUNC)
+            {
+                if (!string.IsNullOrWhiteSpace(ld.Code))
+                {
+                    var code = ld.Code.Trim();
+                    var fn = FuncInfo.Parse(code);
+                    if (fn.Name.ToUpper() == Name)
+                    {
+                        if (fn.Args.Count == 2)
+                        {
+                            var saddr1 = doc.GetSymbolAddress(fn.Args[0]);
+                            var saddr2 = doc.GetSymbolAddress(fn.Args[1]);
+                            var addr1 = AddressInfo.Parse(saddr1);
+                            var addr2 = AddressInfo.Parse(saddr2);
+                            if (addr1.Type == AddressType.WORD && addr2.Type == AddressType.WORD)
+                            {
+                                if (!doc.ValidAddress(saddr1) || !doc.ValidAddress(saddr2))
+                                {
+                                    ret.Add(new LadderCheckMessage()
+                                    {
+                                        Row = ld.Row + 1,
+                                        Column = ld.Col + 1,
+                                        Message = $"'{Name}' 함수의 메모리 주소가 유효하지 않습니다."
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                ret.Add(new LadderCheckMessage()
+                                {
+                                    Row = ld.Row + 1,
+                                    Column = ld.Col + 1,
+                                    Message = $"'{Name}' 함수의 메모리 타입이 서로 다름니다."
+                                });
+                            }
+                        }
+                        else
+                        {
+                            ret.Add(new LadderCheckMessage()
+                            {
+                                Row = ld.Row + 1,
+                                Column = ld.Col + 1,
+                                Message = $"'{Name}' 함수의 인자 수가 옳바르지 않습니다."
+                            });
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+        #endregion
+        #region CheckDistFunction
+        internal static List<LadderCheckMessage> CheckDistFunction(string Name, LadderDocument doc, LadderItem ld)
+        {
+            var ret = new List<LadderCheckMessage>();
+
+            if (doc != null && ld != null && ld.ItemType == LadderItemType.OUT_FUNC)
+            {
+                if (!string.IsNullOrWhiteSpace(ld.Code))
+                {
+                    var code = ld.Code.Trim();
+                    var fn = FuncInfo.Parse(code);
+                    if (fn.Name.ToUpper() == Name)
+                    {
+                        if (fn.Args.Count == 3)
+                        {
+                            int nCnt = 0;
+                            var saddr1 = doc.GetSymbolAddress(fn.Args[0]);
+                            var saddr2 = doc.GetSymbolAddress(fn.Args[1]);
+                            var bCnt = int.TryParse(fn.Args[2], out nCnt) && nCnt >= 1 && nCnt <= 4;
+
+                            var addr1 = AddressInfo.Parse(saddr1);
+                            var addr2 = AddressInfo.Parse(saddr2);
+
+                            #region Cnt
+                            var cnt1 = 0;
+                            var cnt2 = 0;
+
+                            switch (addr1.Code)
+                            {
+                                case "C": cnt1 = doc.C_Count; break;
+                                case "D": cnt1 = doc.D_Count; break;
+                            }
+
+                            switch (addr2.Code)
+                            {
+                                case "C": cnt2 = doc.C_Count; break;
+                                case "D": cnt2 = doc.D_Count; break;
+                            }
+                            #endregion
+
+                            if (addr1.Type == AddressType.WORD && addr1.Index < cnt1 && addr2.Type == AddressType.WORD && addr2.Index + 3 < cnt2 && bCnt)
+                            {
+                                if (!(doc.ValidAddress(saddr1) && doc.ValidAddress(saddr2)))
+                                {
+                                    ret.Add(new LadderCheckMessage()
+                                    {
+                                        Row = ld.Row + 1,
+                                        Column = ld.Col + 1,
+                                        Message = $"'{Name}' 함수의 메모리 주소가 유효하지 않습니다."
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                ret.Add(new LadderCheckMessage()
+                                {
+                                    Row = ld.Row + 1,
+                                    Column = ld.Col + 1,
+                                    Message = $"'{Name}' 함수의 인자가 잘못 지정 되었습니다."
+                                });
+                            }
+                        }
+                        else
+                        {
+                            ret.Add(new LadderCheckMessage()
+                            {
+                                Row = ld.Row + 1,
+                                Column = ld.Col + 1,
+                                Message = $"'{Name}' 함수의 인자 수가 옳바르지 않습니다."
+                            });
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+        #endregion
+        #region CheckUnitFunction
+        internal static List<LadderCheckMessage> CheckUnitFunction(string Name, LadderDocument doc, LadderItem ld)
+        {
+            var ret = new List<LadderCheckMessage>();
+
+            if (doc != null && ld != null && ld.ItemType == LadderItemType.OUT_FUNC)
+            {
+                if (!string.IsNullOrWhiteSpace(ld.Code))
+                {
+                    var code = ld.Code.Trim();
+                    var fn = FuncInfo.Parse(code);
+                    if (fn.Name.ToUpper() == Name)
+                    {
+                        if (fn.Args.Count == 3)
+                        {
+                            int nCnt = 0;
+                            var saddr1 = doc.GetSymbolAddress(fn.Args[0]);
+                            var saddr2 = doc.GetSymbolAddress(fn.Args[1]);
+                            var bCnt = int.TryParse(fn.Args[2], out nCnt) && nCnt >= 1 && nCnt <= 4;
+
+                            var addr1 = AddressInfo.Parse(saddr1);
+                            var addr2 = AddressInfo.Parse(saddr2);
+
+                            #region Cnt
+                            var cnt1 = 0;
+                            var cnt2 = 0;
+
+                            switch (addr1.Code)
+                            {
+                                case "C": cnt1 = doc.C_Count; break;
+                                case "D": cnt1 = doc.D_Count; break;
+                            }
+
+                            switch (addr2.Code)
+                            {
+                                case "C": cnt2 = doc.C_Count; break;
+                                case "D": cnt2 = doc.D_Count; break;
+                            }
+                            #endregion
+
+                            if (addr1.Type == AddressType.WORD && addr1.Index + 3 < cnt1 && addr2.Type == AddressType.WORD && addr2.Index < cnt2 && bCnt)
+                            {
+                                if (!(doc.ValidAddress(saddr1) && doc.ValidAddress(saddr2)))
+                                {
+                                    ret.Add(new LadderCheckMessage()
+                                    {
+                                        Row = ld.Row + 1,
+                                        Column = ld.Col + 1,
+                                        Message = $"'{Name}' 함수의 메모리 주소가 유효하지 않습니다."
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                ret.Add(new LadderCheckMessage()
+                                {
+                                    Row = ld.Row + 1,
+                                    Column = ld.Col + 1,
+                                    Message = $"'{Name}' 함수의 인자가 잘못 지정 되었습니다."
                                 });
                             }
                         }
@@ -535,6 +751,86 @@ namespace Devinno.PLC.Ladder
         }
 
         public List<LadderCheckMessage> Check(LadderDocument doc, LadderItem ld) => LadderFunc.CheckMcsFunction(Name, doc, ld);
+    }
+    #endregion
+    #region class : FuncWXCHG
+    public class FuncWXCHG : ILadderFunc
+    {
+        public string Name => "WXCHG";
+        public string Description
+        {
+            get
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("· 문법");
+                sb.AppendLine("");
+                sb.AppendLine("WXCHG 메모리1, 메모리2");
+                sb.AppendLine("");
+                sb.AppendLine("메모리1 : 교환할 메모리1");
+                sb.AppendLine("메모리2 : 교환할 메모리2");
+                sb.AppendLine("");
+                sb.AppendLine("· 설명");
+                sb.AppendLine("");
+                sb.AppendLine("메모리 1과 메모리2 상호 교환");
+                return sb.ToString();
+            }
+        }
+
+        public List<LadderCheckMessage> Check(LadderDocument doc, LadderItem ld) => LadderFunc.CheckWxchgFunction(Name, doc, ld);
+    }
+    #endregion
+    #region class : FuncDIST
+    public class FuncDIST: ILadderFunc
+    {
+        public string Name => "DIST";
+        public string Description
+        {
+            get
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("· 문법");
+                sb.AppendLine("");
+                sb.AppendLine("DIST 메모리1, 메모리2, 개수");
+                sb.AppendLine("");
+                sb.AppendLine("메모리1 : 소스 메모리");
+                sb.AppendLine("메모리2 : 타깃 메모리 시작");
+                sb.AppendLine("개수 : 메모리에 저장할 개수");
+                sb.AppendLine("");
+                sb.AppendLine("· 설명");
+                sb.AppendLine("");
+                sb.AppendLine("16비트 값을 4비트 단위로 분할하여 타깃 메모리에 저장");
+                return sb.ToString();
+            }
+        }
+
+        public List<LadderCheckMessage> Check(LadderDocument doc, LadderItem ld) => LadderFunc.CheckDistFunction(Name, doc, ld);
+    }
+    #endregion
+    #region class : FuncUNIT
+    public class FuncUNIT : ILadderFunc
+    {
+        public string Name => "UNIT";
+        public string Description
+        {
+            get
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("· 문법");
+                sb.AppendLine("");
+                sb.AppendLine("UNIT 메모리1, 메모리2, 개수");
+                sb.AppendLine("");
+                sb.AppendLine("메모리1 : 소스 메모리 시작");
+                sb.AppendLine("메모리2 : 타깃 메모리");
+                sb.AppendLine("개수 : 메모리에 저장할 개수");
+                sb.AppendLine("");
+                sb.AppendLine("· 설명");
+                sb.AppendLine("");
+                sb.AppendLine("지정한 메모리들의 하위 4비트 합쳐 타깃 메모리에 저장");
+                return sb.ToString();
+            }
+        }
+
+        public List<LadderCheckMessage> Check(LadderDocument doc, LadderItem ld) => LadderFunc.CheckUnitFunction(Name, doc, ld);
     }
     #endregion
 }
