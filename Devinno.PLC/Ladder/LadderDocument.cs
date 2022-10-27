@@ -1,4 +1,5 @@
 ﻿using Devinno.Data;
+using Devinno.PLC.Library;
 using Devinno.Tools;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 
 namespace Devinno.PLC.Ladder
 {
@@ -33,7 +35,7 @@ namespace Devinno.PLC.Ladder
         public int S_Count => LadderBase.MAX_S_COUNT;
 
         public List<SymbolInfo> Symbols { get; set; } = new List<SymbolInfo>();
-        public List<LadderReference> References { get; set; } = new List<LadderReference>();
+        public List<LadderLibrary> Libraries { get; set; } = new List<LadderLibrary>();
         public string Communications { get; set; }
         #endregion
 
@@ -157,22 +159,60 @@ namespace Devinno.PLC.Ladder
 
         #region Member Variable
         private LadderBase lb;
-        private LadderALC alc;
+        private LadderAppALC alc;
+        private WeakReference wr;
 
-        class LadderALC : AssemblyLoadContext
+        #region class : LadderAppALC 
+        class LadderAppALC : AssemblyLoadContext
         {
-            public LadderALC() : base(true)
+            public LadderAppALC() : base(true)
             {
+                this.Resolving += (o, s) =>
+                {
+                    var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LadderLibraries", s.Name + ".dll");
+                    var v = o as AssemblyLoadContext;
+
+                    if (Directory.Exists(path))
+                    {
+                        var file = Path.Combine(path, s.Name + ".dll");
+                        if (File.Exists(file))
+                        {
+                            Assembly ret = null;
+                            var bytes = File.ReadAllBytes(file);
+                            using (var ms = new MemoryStream(bytes)) ret = LoadFromStream(ms);
+                            return ret;
+                        }
+                    }
+                    else
+                    {
+                        var ls = v.Assemblies.Select(x => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LadderLibraries", x.GetName().Name + ".dll")).ToList();
+                        foreach(var p in ls)
+                        {
+                            if (Directory.Exists(p))
+                            {
+                                var file = Path.Combine(p, s.Name + ".dll");
+                                if (File.Exists(file))
+                                {
+                                    Assembly ret = null;
+                                    var bytes = File.ReadAllBytes(file);
+                                    using (var ms = new MemoryStream(bytes)) ret = LoadFromStream(ms);
+                                    return ret;
+                                }
+                            }
+                        }
+                    }
+
+                    return null;
+                };
             }
         }
+        #endregion
         #endregion
 
         #region Method
         #region Download
         public void Download(LadderDocument doc)
         {
-            Initialized = false;
-
             this.Ladders.Clear();
             this.Ladders.AddRange(doc.Ladders);
             this.Symbols.Clear();
@@ -186,44 +226,37 @@ namespace Devinno.PLC.Ladder
             this.C_Count = doc.C_Count;
             this.D_Count = doc.D_Count;
             this.Communications = doc.Communications;
-            this.References = doc.References;
+            this.Libraries = doc.Libraries;
 
             Serialize.JsonSerializeToFile("ladder.ld", this);
-
-            LadderIntialize();
         }
         #endregion
 
         #region LadderIntialize
         public void LadderIntialize()
         {
-            #region Initialize
-            if (lb != null) lb.LadderFinalize();
-
-            lb = null;
-            #endregion
-            #region AssemblyLoad
-            if(File.Exists(LadderEngine.PATH_APP))
+            #region App Load
+            if (File.Exists(LadderEngine.PATH_APP))
             {
-                if (alc != null)
-                {
-                    lb = null;
-                    alc.Unload();
-                }
-                alc = new LadderALC();
-
                 var bytes = File.ReadAllBytes(LadderEngine.PATH_APP);
-                using (var ms = new MemoryStream(bytes))
+                if (bytes.Length > 0)
                 {
-                    var assembly = alc.LoadFromStream(ms);
-                    if (assembly != null)
+                    alc = new LadderAppALC();
+                    wr = new WeakReference(alc);
+
+                    using (var ms = new MemoryStream(bytes))
                     {
-                        var type = assembly.GetType("Devinno.PLC.Ladder.LadderApp");
-                        lb = assembly.CreateInstance("Devinno.PLC.Ladder.LadderApp") as LadderBase;
+                        var assembly = alc.LoadFromStream(ms);
+                        if (assembly != null)
+                        {
+                            var type = assembly.GetType("Devinno.PLC.Ladder.LadderApp");
+                            lb = assembly.CreateInstance("Devinno.PLC.Ladder.LadderApp") as LadderBase;
+                        }
                     }
                 }
             }
             #endregion
+
             if (lb != null)
             {
                 lb.LadderIntialize(this);
@@ -231,6 +264,23 @@ namespace Devinno.PLC.Ladder
             }
         }
         #endregion
+        #region LadderFinalize
+        public void LadderFinalize()
+        {
+            if (lb != null) lb.LadderFinalize();
+            if (alc != null) alc.Unload();
+
+            if (alc != null)
+                foreach (var v in alc.Assemblies)
+                {
+                    var w = v.EntryPoint;
+                }
+
+            lb = null;
+            Initialized = false;
+        }
+        #endregion
+
         #region LadderLoop
         public void LadderLoop()
         {
@@ -243,12 +293,6 @@ namespace Devinno.PLC.Ladder
             if (lb != null) lb.LadderTick();
         }
         #endregion
-        #region LadderFinalize
-        public void LadderFinalize()
-        {
-            if (lb != null) lb.LadderFinalize();
-        }
-        #endregion
 
         #region CommunicationLoop
         public void CommunicationLoop()
@@ -256,7 +300,6 @@ namespace Devinno.PLC.Ladder
             if (lb != null) lb.CommunicationLoop();
         }
         #endregion
-
         #endregion
     }
 

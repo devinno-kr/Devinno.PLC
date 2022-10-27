@@ -244,11 +244,11 @@ namespace LadderEditor.Forms
                 {
                     Block = true;
 
-                    var ret = frmLibrary.ShowLibrary(CurrentDocument.References);
+                    var ret = frmLibrary.ShowLibrary(CurrentDocument.Libraries);
                     if (ret != null)
                     {
-                        CurrentDocument.References.Clear();
-                        CurrentDocument.References.AddRange(ret);
+                        CurrentDocument.Libraries.Clear();
+                        CurrentDocument.Libraries.AddRange(ret);
                         CurrentDocument.Edit = true;
                     }
 
@@ -531,8 +531,6 @@ namespace LadderEditor.Forms
             lblConnection.Value = IsConnected ? Program.DevMgr.TargetIP : "";
             lblConnection.Button = IsConnected ? "해지" : "연결";
 
-            btnUpload.Enabled = IsConnected && !IsDebugging;
-            btnDownload.Enabled = (IsConnected && CurrentDocument != null) && !IsDebugging;
             btnMonitoring.ButtonColor = IsConnected && IsDebugging ? Color.Teal : Theme.ButtonColor;
 
             ladder.Visible = CurrentDocument != null;
@@ -564,6 +562,9 @@ namespace LadderEditor.Forms
 
             var st = Program.DevMgr?.DeviceState ?? EngineState.DISCONNECTED;
             var b = st == EngineState.RUN || st == EngineState.STANDBY;
+
+            btnUpload.Enabled = b && IsConnected && !IsDebugging;
+            btnDownload.Enabled = b && (IsConnected && CurrentDocument != null) && !IsDebugging;
             btnMonitoring.Enabled = b && IsConnected && CurrentDocument != null;
         }
         #endregion

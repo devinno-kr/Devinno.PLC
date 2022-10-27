@@ -10,6 +10,7 @@ using Devinno.Tools;
 using GuiLabs.Undo;
 using LadderEditor.Forms;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -399,6 +400,36 @@ namespace LadderEditor.Controls
                     }
 
                     #region Result Calc
+                    var lsMCS = new List<McsMon>();
+
+                    #region MCS
+                    try
+                    {
+                        var lsS = Ladders.Where(x => x.ItemType == LadderItemType.OUT_FUNC && x.Code != null).Select(x => new { ld = x, strs = x.Code.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).ToArray() }).Where(x => x.strs.Length == 2 && x.strs[0] == "MCS").ToList();
+                        var lsE = Ladders.Where(x => x.ItemType == LadderItemType.OUT_FUNC && x.Code != null).Select(x => new { ld = x, strs = x.Code.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).ToArray() }).Where(x => x.strs.Length == 2 && x.strs[0] == "MCSCLR").ToList();
+
+                        foreach (var vs in lsS)
+                        {
+                            int n1, n2;
+                            if (vs.strs.Length == 2 && vs.strs[0] == "MCS" && int.TryParse(vs.strs[1], out n1))
+                            {
+                                var ve = lsE.Where(x => x.strs[1] == vs.strs[1]).FirstOrDefault();
+                                if (ve != null && int.TryParse(ve.strs[1], out n2))
+                                {
+                                    lsMCS.Add(new McsMon
+                                    {
+                                        StartMcsRow = vs.ld.Row,
+                                        EndMcsRow = ve.ld.Row,
+
+                                        State = vs.ld.Monitor,
+                                    }); 
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                    #endregion
+
                     foreach (var k in result.Keys)
                     {
                         foreach (var vls in result[k])
@@ -414,13 +445,22 @@ namespace LadderEditor.Controls
                                 var v = GetLadder(_v.Row, _v.Col);
                                 if (v != null)
                                 {
+                                    var tls = lsMCS.Where(x => x.StartMcsRow < v.Row && x.EndMcsRow >= v.Row).ToList();
+                                    var b = tls.Count == 0 ? true : tls.Where(x => x.State).Count() == tls.Count;
+
+                                    if(tls.Count > 0)
+                                    {
+
+                                    }
+
                                     if (pv != null) v.PrevMonitorV = pv.MonitorV;
                                     switch (v.ItemType)
                                     {
                                         case LadderItemType.NONE:
                                         case LadderItemType.LINE_H:
                                             {
-                                                v.MonitorV |= v.PrevMonitorV;
+                                                if (b) v.MonitorV |= v.PrevMonitorV;
+                                                else v.MonitorV = false;
                                             }
                                             break;
 
@@ -429,19 +469,20 @@ namespace LadderEditor.Controls
                                         case LadderItemType.OUT_COIL:
                                         case LadderItemType.OUT_FUNC:
                                             {
-                                                v.MonitorV |= (v.PrevMonitorV && v.Monitor);
+                                                if (b) v.MonitorV |= (v.PrevMonitorV && v.Monitor);
+                                                else v.MonitorV = false;
                                             }
                                             break;
                                         case LadderItemType.RISING_EDGE:
                                         case LadderItemType.FALLING_EDGE:
                                         case LadderItemType.NOT:
                                             {
-                                                v.MonitorV = v.Monitor;
+                                                if (b) v.MonitorV = v.Monitor;
+                                                else v.MonitorV = false;
                                             }
                                             break;
                                     }
                                     v.VerticalMonitorV |= v.MonitorV;
-
                                 }
                             }
                         }
@@ -1283,13 +1324,17 @@ namespace LadderEditor.Controls
         #region HorizonLeftLoop
         void HorizonLeftLoop(int CurY, int CurX, Action<int, int> f)
         {
-            int minx = 0;
-            var maxx = CurX - 1;
+            if (Ladders.Where(x => x.Row == CurY && x.Code.StartsWith("#region")).Count() == 0)
+            {
+                int minx = 0;
+                var maxx = CurX - 1;
 
-            var r = Ladders.Where(x => (x.Row == CurY && x.ItemType != LadderItemType.NONE) || (x.Row == CurY - 1 && x.VerticalLine));
-            if (r.Count() > 0) minx = r.Max(x => x.Col);
+                var r = Ladders.Where(x => (x.Row == CurY && x.ItemType != LadderItemType.NONE) || (x.Row == CurY - 1 && x.VerticalLine)).ToList();
+                if (r.Count > 0) minx = r.Max(x => x.Col);
 
-            for (int ic = minx; ic <= maxx; ic++) f(CurY, ic);
+
+                for (int ic = minx; ic <= maxx; ic++) f(CurY, ic);
+            }
         }
         #endregion
         #endregion
@@ -2005,7 +2050,7 @@ namespace LadderEditor.Controls
             {
                 #region Folding
                 var c = Color.FromArgb(180, 180, 180);
-                var str = row.Items[0].Code.Substring(8);
+                var str = row.Items[0].Code.Length >= 8 ? row.Items[0].Code.Substring(8) : "...";
                 var sz = g.MeasureString(str, Font);
                 var rt = Util.INT(Util.MakeRectangleAlign(rtMSG, new SizeF(sz.Width + 6, sz.Height + 4), DvContentAlignment.MiddleLeft)); rt.Offset(10, 0);
                 Theme.DrawText(g, str, Font, c, rt);
@@ -2849,7 +2894,7 @@ namespace LadderEditor.Controls
                     var Items = LD_ROW[i].ToList();
                     ls.Add(new LadderRow(i, LD_ROW[i].ToList())
                     {
-                        Expand = Items.Count > 0 && Items[0].ItemType == LadderItemType.NONE && Items[0].Code.StartsWith("#region") && Items[0].Expand
+                        Expand = Items.Count > 0 && Items[0].Code.StartsWith("#region") && Items[0].Expand
                     });
                 }
                 else
@@ -3015,10 +3060,10 @@ namespace LadderEditor.Controls
         public List<LadderRow> FoldingRows { get; private set; } = new List<LadderRow>();
         public bool Expand
         {
-            get => Items.Count > 0 && Items[0].ItemType == LadderItemType.NONE && Items[0].Code.StartsWith("#region") && Items[0].Expand;
+            get => Items.Count > 0 && Items[0].Code.StartsWith("#region") && Items[0].Expand;
             set
             {
-                if (Items.Count > 0 && Items[0].ItemType == LadderItemType.NONE && Items[0].Code.StartsWith("#region")) 
+                if (Items.Count > 0 && Items[0].Code.StartsWith("#region")) 
                     Items[0].Expand = value;
             }
         }
@@ -3054,6 +3099,18 @@ namespace LadderEditor.Controls
         public int EndRow { get; set; }
 
         public bool Check(int Row) => Row >= StartRow && Row <= EndRow;
+    }
+    #endregion
+    #region class : McsMon
+    class McsMon
+    {
+        public int StartMcsRow { get; set; }
+        public int EndMcsRow { get; set; }
+
+        public int Row { get; set; }
+        public int Col { get; set; }
+
+        public bool State { get; set; }
     }
     #endregion
     #endregion

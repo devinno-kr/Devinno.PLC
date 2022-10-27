@@ -34,6 +34,7 @@ namespace LadderEditor.Datas
         {
             if (!string.IsNullOrWhiteSpace(FileName) && File.Exists(FileName))
             {
+                var v = this;
                 Save(FileName);
                 Edit = false;
             }

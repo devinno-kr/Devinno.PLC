@@ -140,31 +140,17 @@ namespace LadderEditor.Managers
         {
             if (IsConnected && doc != null)
             {
-                var r = new DNV();
-                var sDoc = Serialize.JsonSerializeWithType(doc);
-                r.DocBin = Encoding.UTF8.GetBytes(sDoc);
-
-                var lk = doc.References.ToLookup(x => x.DllPath);
-
+                var lk = doc.Libraries.ToLookup(x => x.DllPath);
+                var ls = new List<LadderDll>();
                 foreach (var v in lk)
                 {
-                    var vdir = Path.Combine(Application.StartupPath, "Libraries", Path.GetFileNameWithoutExtension(v.Key));
-                    if (Directory.Exists(vdir))
-                    {
-                        var libnm = Path.GetFileNameWithoutExtension(v.Key);
-                        var dic = new Dictionary<string, byte[]>();
-                        foreach (var file in Directory.GetFiles(vdir))
-                        {
-                            var key = Path.GetFileName(file);
-                            var val = File.ReadAllBytes(file);
-                            dic.Add(key, val);
-                        }
-                        r.Files.Add(libnm, dic);
-                    }
+                    var dll = Program.LibMgr.References.Where(x => x.DllPath == v.Key).FirstOrDefault();
+                    if (dll != null) ls.Add(dll);
                 }
+                var sLib = Serialize.JsonSerialize(ls);
+                var sDoc = Serialize.JsonSerialize(doc);
+                var s = Serialize.JsonSerialize(new DMSG { Doc = sDoc, Lib = sLib });
 
-                var s = Serialize.JsonSerialize(r);
-                var len = s.Length;
                 comm.ManualSend(LadderEngine.CMD_DOWNLOAD, 1, LadderEngine.CMD_DOWNLOAD, s);
             }
         }
@@ -178,7 +164,7 @@ namespace LadderEditor.Managers
             }
         }
         #endregion
-
+        
         #region StartDebug
         public void StartDebug()
         {
@@ -202,11 +188,11 @@ namespace LadderEditor.Managers
         #endregion
     }
 
-    #region class : DNV
-    class DNV
+    #region class : DMSG
+    class DMSG
     {
-        public Dictionary<string, Dictionary<string, byte[]>> Files { get; set; } = new Dictionary<string, Dictionary<string, byte[]>>();
-        public byte[] DocBin { get; set; }
+        public string Lib { get; set; }
+        public string Doc { get; set; }
     }
     #endregion
 }

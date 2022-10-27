@@ -8,6 +8,9 @@ namespace Devinno.PLC.Library
 {
     public interface ILadderLibrary
     {
-        string Name { get; }
+        string LibraryName { get; }
+
+        void Begin();
+        void End();
     }
 }

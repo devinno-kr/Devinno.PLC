@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>.\LadderDB.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="C:\Users\hy752\.nuget\packages\devinno.plc.library\1.0.0\contentFiles\any\net5.0\ico.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySql.Data" Version="8.0.31" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Devinno.PLC">
+      <HintPath>..\..\Devinno.PLC\bin\Debug\net5.0\Devinno.PLC.dll</HintPath>
+    </Reference>
+    <Reference Include="Devinno.PLC.Library">
+      <HintPath>..\..\Devinno.PLC\bin\Debug\net5.0\Devinno.PLC.Library.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

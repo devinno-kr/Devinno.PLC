@@ -144,12 +144,15 @@ namespace Devinno.PLC.Ladder
                 }
             }
             #endregion
+
+            OnLadderIntialize();
         }
         #endregion
         #region Ladder Finalize
         public void LadderFinalize()
         {
             foreach (var itm in Items) itm.Stop();
+            OnLadderFinalize();
             Thread.Sleep(500);
         }
         #endregion
@@ -559,6 +562,12 @@ namespace Devinno.PLC.Ladder
         #endregion
         #endregion
 
+        #region OnLadderIntialize
+        public virtual void OnLadderIntialize() { }
+        #endregion
+        #region OnLadderFinalize
+        public virtual void OnLadderFinalize() { }
+        #endregion
         #endregion
     }
 

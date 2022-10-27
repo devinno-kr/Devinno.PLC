@@ -1,0 +1,10 @@
+﻿[Unit]
+Description=RpiPLC
+After=network.target
+
+[Service]
+Type=Simple
+ExecStart=/usr/local/bin/dotnet /home/pi/App/RpiPLC/RpiPLC.dll
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="C:\Users\hy752\.nuget\packages\devinno.plc.library\1.0.0\contentFiles\any\net5.0\ico.png" />
+    <Content Remove="C:\Users\hy752\.nuget\packages\devinno.plc\1.0.0\contentFiles\any\net5.0\ico.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Devinno" Version="1.1.0.1" />
+    <PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.4.1" />
+    <PackageReference Include="Unosquare.Raspberry.IO" Version="0.27.1" />
+    <PackageReference Include="Unosquare.WiringPi" Version="0.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Devinno.PLC">
+      <HintPath>..\..\Devinno.PLC\bin\Debug\net5.0\Devinno.PLC.dll</HintPath>
+    </Reference>
+    <Reference Include="Devinno.PLC.Library">
+      <HintPath>..\..\Devinno.PLC\bin\Debug\net5.0\Devinno.PLC.Library.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

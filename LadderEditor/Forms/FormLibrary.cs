@@ -21,7 +21,7 @@ namespace LadderEditor.Forms
     public partial class FormLibrary : DvForm
     {
         #region Member Variable
-        List<LadderReference> Libs = new List<LadderReference>();
+        List<LadderLibrary> Libs = new List<LadderLibrary>();
         #endregion
 
         #region Constructor
@@ -66,8 +66,8 @@ namespace LadderEditor.Forms
 
                     if (files.Length == 1 && dlls.Count == 1)
                     {
-                        var vls = DllTool.Load(dlls[0], (tp, v) => { });
-                        if (vls.Count > 0) s.Effect = DragDropEffects.Copy;
+                        var vref = DllTool.Load(dlls[0], (asm, tp, vref, vlib) => { });
+                        if (vref != null && vref.Libraries.Count > 0) s.Effect = DragDropEffects.Copy;
                     }
                 }
             };
@@ -91,7 +91,7 @@ namespace LadderEditor.Forms
                 var sels = dgLibrary.Rows.Where(x => x.Selected).ToList();
                 if(sels.Count > 0)
                 {
-                    Libs.AddRange(sels.Select(x => (LadderReference)x.Source));
+                    Libs.AddRange(sels.Select(x => (LadderLibrary)x.Source));
                     RefreshLibrary();
                 }
             };
@@ -102,7 +102,7 @@ namespace LadderEditor.Forms
                 var sels = dgReference.Rows.Where(x => x.Selected).ToList();
                 if (sels.Count > 0)
                 {
-                    foreach (var v in sels) Libs.Remove((LadderReference)v.Source);
+                    foreach (var v in sels) Libs.Remove((LadderLibrary)v.Source);
                     RefreshLibrary();
                 }
             };
@@ -115,17 +115,20 @@ namespace LadderEditor.Forms
         #region RefreshLibrary
         void RefreshLibrary()
         {
-            dgLibrary.SetDataSource<LadderReference>(Program.LibMgr.Libraries);
+            var ls = new List<LadderLibrary>();
+            foreach (var v in Program.LibMgr.References) ls.AddRange(v.Libraries);
+
+            dgLibrary.SetDataSource<LadderLibrary>(ls);
             dgLibrary.Invalidate();
 
-            dgReference.SetDataSource<LadderReference>(Libs);
+            dgReference.SetDataSource<LadderLibrary>(Libs);
             dgReference.Invalidate();
         }
         #endregion
         #region ShowLibrary
-        public List<LadderReference> ShowLibrary(List<LadderReference> libs)
+        public List<LadderLibrary> ShowLibrary(List<LadderLibrary> libs)
         {
-            List<LadderReference> ret = null;
+            List<LadderLibrary> ret = null;
             
             Libs.Clear();
             Libs.AddRange(libs);

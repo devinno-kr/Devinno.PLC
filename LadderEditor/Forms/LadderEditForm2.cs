@@ -12,6 +12,7 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -34,6 +35,8 @@ namespace LadderEditor.Forms
         bool bOpen = false;
         bool bLoop = false;
         AutocompleteMenu autocompleteMenu;
+
+        int CH;
         #endregion
 
         #region Constructor
@@ -141,6 +144,8 @@ namespace LadderEditor.Forms
             //autocompleteMenu.Selected += (o, s) => { ThreadPool.QueueUserWorkItem((p) => { Thread.Sleep(100); bOpen = false; }); };
             #endregion
             #endregion
+
+            CH = pnlContent.Height;
         }
         #endregion
 
@@ -155,12 +160,12 @@ namespace LadderEditor.Forms
             #region WindowSize
             if (ld != null && ld.ItemType == LadderItemType.OUT_FUNC)
             {
-                this.Size = new Size(500, 364);
+                this.Size = new Size(500, 400);
                 this.pnlContent.Visible = true;
             }
             else
             {
-                this.Size = new Size(300, 364 - 221);
+                this.Size = new Size(300, 400 - CH);
                 this.pnlContent.Visible = false;
             }
             #endregion
@@ -296,7 +301,38 @@ namespace LadderEditor.Forms
                     if (fn != null && Dic != null && Dic.ContainsKey(fn))
                         lblDesc.Text = Dic[fn];
                     else
-                        lblDesc.Text = "";
+                    {
+                        var doc = Program.MainForm.CurrentDocument;
+                        var libMgr = Program.LibMgr;
+
+                        var m = "";
+                        try
+                        {
+                            var ms = txt.Text.Split('.', '(', ')', ',', '+', '-', '*', '/');
+                            if (ms.Length >= 2)
+                            {
+                                var inst = ms[0];
+                                var mthd = ms[1];
+
+                                var b1 = txt.Text.Length > txt.Text.IndexOf(inst) + inst.Length ? txt.Text[txt.Text.IndexOf(inst) + inst.Length] == '.' : false;
+                                var b2 = txt.Text.Length > txt.Text.IndexOf(mthd) + mthd.Length ? txt.Text[txt.Text.IndexOf(mthd) + mthd.Length] == '(' : false;
+
+                                var v = doc.Libraries.Where(x => x.InstanceName == inst).FirstOrDefault();
+                                if (v != null && libMgr.Classes.ContainsKey(v.Name))
+                                {
+                                    var v2 = libMgr.Classes[v.Name].Where(x => x.Text == mthd).FirstOrDefault();
+                                
+                                    if(v2 != null && !string.IsNullOrWhiteSpace(v2.Desc))
+                                    {
+                                        m = v2.Desc;
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                         
+                        lblDesc.Text = m;
+                    }
                 }
             }
             else
@@ -333,7 +369,7 @@ namespace LadderEditor.Forms
                     var nm = txt.Text.Split('.').FirstOrDefault();
                     if (nm != null)
                     {
-                        var v = doc.References.Where(x => x.InstanceName == nm).FirstOrDefault();
+                        var v = doc.Libraries.Where(x => x.InstanceName == nm).FirstOrDefault();
                         if (v != null && libMgr.Classes.ContainsKey(v.Name))
                         {
                             foreach (var v2 in libMgr.Classes[v.Name])

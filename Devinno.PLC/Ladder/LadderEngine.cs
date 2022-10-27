@@ -18,6 +18,7 @@ using Devinno.Communications.Mqtt;
 using Devinno.Communications;
 using System.Threading;
 using System.Reflection;
+using System.Runtime.Loader;
 
 namespace Devinno.PLC.Ladder
 {
@@ -28,9 +29,9 @@ namespace Devinno.PLC.Ladder
         private const string PATH_ID = "engine.id";
 
         public const int CMD_DOWNLOAD = 1;
-        public const int CMD_UPLOAD = 2;
-        public const int CMD_DEBUG = 3;
-        public const int CMD_STATE = 4;
+        public const int CMD_UPLOAD = 3;
+        public const int CMD_DEBUG = 4;
+        public const int CMD_STATE = 5;
         #endregion
 
         #region Comment
@@ -39,14 +40,14 @@ namespace Devinno.PLC.Ladder
          ※ 주소체계
 
          비트영역 -    비트       : M0, M100             
-                       워드       : WM0, WM10                   //   
+                      워드       : WM0, WM10                   //   
 
          워드영역 -    비트       : D0.0 ~ D0.F                 //      D0.0 ~ D0.16
-                       바이트     : D0.B0 ~ D0.B1               //      D0.Byte0 ~ D0.Byte1
-                       워드       : D0, D100     
-                       더블워드   : DW(D0), DW(D100),           
-                                    DW(D0).B0 ~ DW(D0).B3,      //      DW(D0).Byte0 ~ DW(D0).Byte3
-                                    DW(D0).0 ~ DW(D0).1F        //      DW(D0).0 ~ DW(D0).31
+                      바이트     : D0.B0 ~ D0.B1               //      D0.Byte0 ~ D0.Byte1
+                      워드       : D0, D100     
+                      더블워드    : DW(D0), DW(D100),           
+                                   DW(D0).B0 ~ DW(D0).B3,      //      DW(D0).Byte0 ~ DW(D0).Byte3
+                                   DW(D0).0 ~ DW(D0).1F        //      DW(D0).0 ~ DW(D0).31
          */
 
         #endregion
@@ -142,35 +143,51 @@ namespace Devinno.PLC.Ladder
 
                                 ThreadPool.QueueUserWorkItem((o) =>
                                 {
-                                    var dnv = Serialize.JsonDeserialize<DNV>(e.RequestMessage);
-                                    var path_lib = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Libraries");
-                                    if (!Directory.Exists(path_lib)) Directory.CreateDirectory(path_lib);
+                                    Document.LadderFinalize();
+                                    System.Threading.Thread.Sleep(1000);
 
-                                    foreach (var libnm in dnv.Files.Keys)
+                                    GC.Collect();
+                                    GC.WaitForPendingFinalizers();
+
+                                    var dm = Serialize.JsonDeserialize<DMSG>(e.RequestMessage);
+
+                                    #region Lib
+                                    var lib = Serialize.JsonDeserialize<List<LadderDll>>(dm.Lib);
                                     {
-                                        var path_lib_v = Path.Combine(path_lib, libnm);
-                                        if (!Directory.Exists(path_lib_v)) Directory.CreateDirectory(path_lib_v);
+                                        var path_lib = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LadderLibraries");
+                                        if (!Directory.Exists(path_lib)) Directory.CreateDirectory(path_lib);
 
-                                        foreach (var vk in dnv.Files[libnm].Keys)
+                                        foreach (var v in lib)
                                         {
-                                            File.WriteAllBytes(Path.Combine(path_lib_v, vk), dnv.Files[libnm][vk]);
+                                            var path = Path.Combine(path_lib, v.DllPath);
+                                            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+                                            foreach (var k in v.Binaries.Keys)
+                                            {
+                                                var file = Path.Combine(path, k);
+                                                File.WriteAllBytes(file, v.Binaries[k]);
+                                            }
                                         }
                                     }
-
-                                    var doc = Serialize.JsonDeserialize<LadderDocument>(Encoding.UTF8.GetString(dnv.DocBin));
-
+                                    #endregion
+                                    #region Doc
+                                    var doc = Serialize.JsonDeserialize<LadderDocument>(dm.Doc);
                                     var codes = LadderTool.MakeCode(doc);
-                                    var rv = LadderTool.Compile(codes, PATH_APP, doc.References, false);
+                                    var rv = LadderTool.Compile(codes, PATH_APP, doc.Libraries, false);
+                                    #endregion
+
                                     if (rv.Result.Success)
                                     {
                                         Document.Download(doc);
+                                        Document.LadderIntialize();
                                         System.Threading.Thread.Sleep(1000);
                                         if (Document.Base != null && Document.Initialized) State = EngineState.RUN;
                                     }
                                     else State = EngineState.STANDBY;
 
+                                   
                                 });
-                                
+
                                 e.ResponseMessage = Serialize.JsonSerialize(new PacketResult() { Message = "OK" });
                             }
                             else
@@ -216,8 +233,8 @@ namespace Devinno.PLC.Ladder
                             e.ResponseMessage = Serialize.JsonSerialize(v);
                         }
                         break;
-                        #endregion
-                        
+                    #endregion
+                   
                 }
             }
             catch (Exception ex) { }
@@ -232,7 +249,10 @@ namespace Devinno.PLC.Ladder
             if (File.Exists(RuntimeLadderDocument.RUNTIME_LADDER_FILE))
             {
                 var doc = Serialize.JsonDeserializeFromFile<LadderDocument>(RuntimeLadderDocument.RUNTIME_LADDER_FILE);
+
+                Document.LadderFinalize();
                 Document.Download(doc);
+                Document.LadderIntialize();
 
                 if (Document.Base != null && Document.Initialized)
                 {
@@ -294,6 +314,7 @@ namespace Devinno.PLC.Ladder
             comm.Stop();
             udp.Stop();
             tmr.Stop();
+
             IsStart = false;
         }
         #endregion
@@ -301,11 +322,11 @@ namespace Devinno.PLC.Ladder
 
     }
 
-    #region class : DNV
-    class DNV
+    #region class : DMSG
+    class DMSG
     {
-        public Dictionary<string, Dictionary<string, byte[]>> Files { get; set; } = new Dictionary<string, Dictionary<string, byte[]>>();
-        public byte[] DocBin { get; set; }
+        public string Lib { get; set; }
+        public string Doc { get; set; }
     }
     #endregion
 }

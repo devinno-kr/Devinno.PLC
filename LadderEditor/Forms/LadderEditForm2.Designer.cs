@@ -88,7 +88,7 @@ namespace LadderEditor.Forms
             this.dvContainer1.Controls.Add(this.dvControl1);
             this.dvContainer1.Controls.Add(this.btnCancel);
             this.dvContainer1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.dvContainer1.Location = new System.Drawing.Point(3, 311);
+            this.dvContainer1.Location = new System.Drawing.Point(3, 347);
             this.dvContainer1.Name = "dvContainer1";
             this.dvContainer1.Padding = new System.Windows.Forms.Padding(7, 10, 7, 7);
             this.dvContainer1.ShadowGap = 1;
@@ -164,7 +164,7 @@ namespace LadderEditor.Forms
             this.pnlContent.Padding = new System.Windows.Forms.Padding(7, 0, 7, 0);
             this.pnlContent.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.pnlContent.ShadowGap = 1;
-            this.pnlContent.Size = new System.Drawing.Size(424, 221);
+            this.pnlContent.Size = new System.Drawing.Size(424, 257);
             this.pnlContent.TabIndex = 4;
             this.pnlContent.TabStop = false;
             this.pnlContent.Text = "dvContainer1";
@@ -185,7 +185,7 @@ namespace LadderEditor.Forms
             this.lblDesc.Name = "lblDesc";
             this.lblDesc.Round = null;
             this.lblDesc.ShadowGap = 1;
-            this.lblDesc.Size = new System.Drawing.Size(410, 191);
+            this.lblDesc.Size = new System.Drawing.Size(410, 227);
             this.lblDesc.Style = Devinno.Forms.Embossing.FlatConcave;
             this.lblDesc.TabIndex = 3;
             this.lblDesc.TabStop = false;
@@ -222,7 +222,7 @@ namespace LadderEditor.Forms
             // LadderEditForm2
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.ClientSize = new System.Drawing.Size(430, 364);
+            this.ClientSize = new System.Drawing.Size(430, 400);
             this.Controls.Add(this.pnlContent);
             this.Controls.Add(this.pnl);
             this.Controls.Add(this.dvContainer1);

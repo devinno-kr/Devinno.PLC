@@ -364,7 +364,7 @@ namespace Devinno.PLC.Ladder
                 #region Compile Check
                 var codes = MakeCode(doc);
                 var file = Path.GetRandomFileName();
-                var rv = Compile(codes, file, doc.References, Editor);
+                var rv = Compile(codes, file, doc.Libraries, Editor);
                 var lines = codes[0].Replace("\r\n", "\n").Split('\n');
                 if (!rv.Result.Success)
                 {
@@ -423,7 +423,7 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Compile
-        public static CompileResult Compile(string[] codes, string assemblyName, List<LadderReference> References, bool Editor)
+        public static CompileResult Compile(string[] codes, string assemblyName, List<LadderLibrary> Libraries, bool Editor)
         {
             CompileResult ret = null;
             if (codes != null)
@@ -441,15 +441,22 @@ namespace Devinno.PLC.Ladder
                     typeof(LadderBase).GetTypeInfo().Assembly.Location,
                     typeof(ILadderLibrary).GetTypeInfo().Assembly.Location,
 
-                    Path.Combine(Path.GetDirectoryName(typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly.Location), "System.Runtime.dll")
+                    Path.Combine(Path.GetDirectoryName(typeof(System.Object).GetTypeInfo().Assembly.Location), "System.Runtime.dll"),
+                    Path.Combine(Path.GetDirectoryName(typeof(System.Object).GetTypeInfo().Assembly.Location), "System.Runtime.Loader.dll")
                 }.ToList();
 
-                foreach (var v in References.ToLookup(x => x.DllPath))
+                foreach (var v in Libraries.ToLookup(x => x.DllPath))
                 {
-                    var vdir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Libraries", Path.GetFileNameWithoutExtension(v.Key));
-                    foreach (var vpath in Directory.GetFiles(vdir)) refPaths.Add(Path.Combine(vdir, vpath));
+                    var vdir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LadderLibraries", v.Key);
+                    if (Directory.Exists(vdir))
+                    {
+                        foreach (var vpath in Directory.GetFiles(vdir).Where(x=>Path.GetExtension(x) == ".dll"))
+                        {
+                            refPaths.Add(vpath);
+                        }
+                    }
                 }
-                           
+
                 var references = refPaths.Select(r => MetadataReference.CreateFromFile(r)).ToArray();
                 var compilation = CSharpCompilation.Create(
                    assemblyName,
@@ -563,7 +570,6 @@ namespace Devinno.PLC.Ladder
         internal static string[] MakeCode(LadderDocument doc)
         {
             string codeLadder, codeSymbol;
-            //21.08.23 - 레더코드 생성
 
             #region Variable
             var dic = GetDict(doc.Ladders);
@@ -586,7 +592,7 @@ namespace Devinno.PLC.Ladder
                 sb.AppendLine("     {");
                 sb.AppendLine("");
                 #region Reference
-                foreach (var v in doc.References.Where(x => !string.IsNullOrWhiteSpace(x.InstanceName)))
+                foreach (var v in doc.Libraries.Where(x => !string.IsNullOrWhiteSpace(x.InstanceName)))
                 {
                     sb.AppendLine($"         {v.TypeName} {v.InstanceName} = new {v.TypeName}();");
                 }
@@ -603,7 +609,7 @@ namespace Devinno.PLC.Ladder
                             {
                                 sb.AppendLine("         bool     __" + v.Row + "_" + v.Col + ";");
                             }
-                            else if(vit == LadderItemType.RISING_EDGE || vit == LadderItemType.FALLING_EDGE)
+                            else if (vit == LadderItemType.RISING_EDGE || vit == LadderItemType.FALLING_EDGE)
                             {
                                 sb.AppendLine("         EDGE     __" + v.Row + "_" + v.Col + " = new EDGE();");
 
@@ -708,7 +714,7 @@ namespace Devinno.PLC.Ladder
                                 foreach (var nd in v)
                                 {
                                     string nm = "__" + nd.Row + "_" + nd.Col;
-                                    
+
                                     if (nd != v.LastOrDefault())
                                     {
                                         #region LOGIC CODE
@@ -861,7 +867,7 @@ namespace Devinno.PLC.Ladder
                                                             int idx = Convert.ToInt32(fn.Args[0]);
                                                             sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Use = true;                                     //{nd.Row},{nd.Col}");
-                                                            sb.AppendLine($"                     MCS[{idx}].Value = result;                                 //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     MCS[{idx}].Value = _result_;                               //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
                                                     case "MCSCLR":
@@ -969,7 +975,7 @@ namespace Devinno.PLC.Ladder
                                                             sb.AppendLine($"                     MCS[{idx}].Value = false;                             //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
-                                                    #endregion
+                                                        #endregion
                                                 }
                                             }
                                             #endregion
@@ -1003,7 +1009,7 @@ namespace Devinno.PLC.Ladder
                 {
                     string nm = "__" + nd.Row + "_" + nd.Col;
 
-                    sb.AppendLine($"         {nm}.Reset();"); 
+                    sb.AppendLine($"         {nm}.Reset();");
                 }
                 #endregion
                 #region Debug
@@ -1083,11 +1089,29 @@ namespace Devinno.PLC.Ladder
                 #endregion
                 sb.AppendLine("             _SR_BEGIN = false;                                                      ");
                 sb.AppendLine("         }");
+                sb.AppendLine("         ");
+                sb.AppendLine("         public override void OnLadderIntialize()");
+                sb.AppendLine("         {");
+                #region Reference
+                foreach (var v in doc.Libraries.Where(x => !string.IsNullOrWhiteSpace(x.InstanceName)))
+                    sb.AppendLine($"            {v.InstanceName}.Begin();");
+                #endregion
+                sb.AppendLine("         }");
+                sb.AppendLine("         ");
+                sb.AppendLine("         public override void OnLadderFinalize()");
+                sb.AppendLine("         {");
+                #region Reference
+                foreach (var v in doc.Libraries.Where(x => !string.IsNullOrWhiteSpace(x.InstanceName)))
+                    sb.AppendLine($"            {v.InstanceName}.End();");
+                #endregion
+                sb.AppendLine("         }");
+                sb.AppendLine("         ");
                 sb.AppendLine("     }");
                 sb.AppendLine("}");
                 codeLadder = sb.ToString();
             }
             #endregion
+
             #region Symbol
             { 
                 var sb = new StringBuilder();
@@ -1221,6 +1245,7 @@ namespace Devinno.PLC.Ladder
             }
 
             #endregion
+
             return new string[] { codeLadder, codeSymbol };
         }
         #endregion

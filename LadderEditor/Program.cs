@@ -58,7 +58,7 @@ namespace LadderEditor
             */
             #endregion
             #region Directory
-            var pathLib = Path.Combine(Application.StartupPath, "Libraries");
+            var pathLib = Path.Combine(Application.StartupPath, "LadderLibraries");
             if (!Directory.Exists(pathLib)) Directory.CreateDirectory(pathLib);
             #endregion
             #region Managers
