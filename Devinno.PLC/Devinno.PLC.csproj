@@ -10,7 +10,9 @@
     <Authors>Devinno</Authors>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <Platforms>AnyCPU;x64;x86</Platforms>
-    <PackageProjectUrl>https://github.com/devinno-kr/Devinno.PLC</PackageProjectUrl>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryUrl>https://github.com/devinno-kr/Devinno.PLC</RepositoryUrl>
+    <PackageIconUrl />
   </PropertyGroup>
 
   <ItemGroup>

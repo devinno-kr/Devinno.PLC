@@ -2,6 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <Authors>Devinno</Authors>
+    <Company>Devinno</Company>
+    <Product>Devinno.PLC</Product>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageIcon>ico.png</PackageIcon>
+    <PackageIconUrl />
+    <RepositoryUrl>https://github.com/devinno-kr/Devinno.PLC</RepositoryUrl>
+    <Description>PLC Runtime Interface</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\ico.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\LICENSE.md">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
