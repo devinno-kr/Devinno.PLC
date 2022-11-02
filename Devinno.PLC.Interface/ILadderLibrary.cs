@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Devinno.PLC.Library
+namespace Devinno.PLC.Interface
 {
     public interface ILadderLibrary
     {

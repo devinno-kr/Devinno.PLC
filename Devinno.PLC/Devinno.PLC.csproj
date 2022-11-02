@@ -42,7 +42,7 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\Devinno.PLC.Library\Devinno.PLC.Library.csproj" />
+    <ProjectReference Include="..\Devinno.PLC.Interface\Devinno.PLC.Interface.csproj" />
   </ItemGroup>
 
 </Project>
