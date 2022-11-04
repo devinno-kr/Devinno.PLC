@@ -329,8 +329,7 @@ namespace Devinno.PLC.Ladder
                     else 
                     { 
                         var fn = FuncInfo.Parse(code);
-
-                        if (LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
+                        if (fn != null && LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
                         {
                             var result = LadderFunc.Check(doc, itm);
                             if (result.Count > 0) ret.AddRange(result);
@@ -813,7 +812,7 @@ namespace Devinno.PLC.Ladder
                                             var code = nd.Code.Trim();
                                             var fn = FuncInfo.Parse(code);
                                             #region 함수
-                                            if (LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
+                                            if (fn != null && LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
                                             {
                                                 switch (fn.Name.ToUpper())
                                                 {
@@ -995,7 +994,7 @@ namespace Devinno.PLC.Ladder
                                             var code = nd.Code.Trim();
                                             var fn = FuncInfo.Parse(code);
                                             #region 함수
-                                            if (LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
+                                            if (fn != null && LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
                                             {
                                                 switch (fn.Name.ToUpper())
                                                 {
@@ -1210,7 +1209,7 @@ namespace Devinno.PLC.Ladder
                             {
                                 var fn = FuncInfo.Parse(v.Code);
 
-                                if (fn.Name == "DIST")
+                                if (fn != null && fn.Name == "DIST")
                                 {
                                     if (doc.ValidSymbol(fn.Args[0]))
                                     {
@@ -1232,7 +1231,7 @@ namespace Devinno.PLC.Ladder
                                         }
                                     }
                                 }
-                                else if(fn.Name == "UNIT")
+                                else if(fn != null && fn.Name == "UNIT")
                                 {
                                     if (doc.ValidSymbol(fn.Args[0]))
                                     {
@@ -1298,7 +1297,6 @@ namespace Devinno.PLC.Ladder
                             case "T": sb.AppendLine("         public int " + mem + " { get => T[" + nai + "]; set => T[" + nai + "] = value; }"); break;
                             case "C": sb.AppendLine("         public int " + mem + " { get => C[" + nai + "]; set => C[" + nai + "] = value; }"); break;
                             case "D": sb.AppendLine("         public int " + mem + " { get => D[" + nai + "]; set => D[" + nai + "] = value; }"); break;
-                            case "R": sb.AppendLine("         public float " + mem + " { get => R[" + nai + "]; set => R[" + nai + "] = value; }"); break;
                         }
                     }
                     #endregion
@@ -1332,7 +1330,6 @@ namespace Devinno.PLC.Ladder
                             case "T": sb.AppendLine("         public int " + v.SymbolName + " { get => T[" + nai + "]; set => T[" + nai + "] = value; }"); break;
                             case "C": sb.AppendLine("         public int " + v.SymbolName + " { get => C[" + nai + "]; set => C[" + nai + "] = value; }"); break;
                             case "D": sb.AppendLine("         public int " + v.SymbolName + " { get => D[" + nai + "]; set => D[" + nai + "] = value; }"); break;
-                            case "R": sb.AppendLine("         public float " + v.SymbolName + " { get => R[" + nai + "]; set => R[" + nai + "] = value; }"); break;
                         }
                     }
                     #endregion

@@ -23,7 +23,6 @@ namespace Devinno.PLC.Ladder
         public const int MAX_T_COUNT = 2048;
         public const int MAX_C_COUNT = 2048;
         public const int MAX_D_COUNT = 4096;
-        public const int MAX_R_COUNT = 1024;
         public const int MAX_S_COUNT = 2048;
 
         public const int Default_P_BaseAddress = 0x0000;
@@ -45,7 +44,6 @@ namespace Devinno.PLC.Ladder
         public int T_Count { get; set; } = MAX_T_COUNT;
         public int C_Count { get; set; } = MAX_C_COUNT;
         public int D_Count { get; set; } = MAX_D_COUNT;
-        public int R_Count { get; set; } = MAX_R_COUNT;
         public int S_Count => MAX_S_COUNT;
         #endregion
 
@@ -67,9 +65,6 @@ namespace Devinno.PLC.Ladder
 
         [Newtonsoft.Json.JsonIgnore]
         public BitMemories S { get; private set; } = null;
-
-        [Newtonsoft.Json.JsonIgnore]
-        public RealMemories R { get; private set; } = null;
 
         [Newtonsoft.Json.JsonIgnore]
         public WDS WP { get; private set; } = null;
@@ -102,14 +97,12 @@ namespace Devinno.PLC.Ladder
             T_Count = doc.T_Count;
             C_Count = doc.C_Count;
             D_Count = doc.D_Count;
-            R_Count = doc.R_Count;
 
             P = new BitMemories("P", P_Count);
             M = new BitMemories("M", M_Count);
             T = new TMRS("T", T_Count);
             C = new WDS("C", C_Count);
             D = new WDS("D", D_Count);
-            R = new RealMemories("R", R_Count);
             S = new BitMemories("S", S_Count);
             WP = new WDS("WP", P.RawData);
             WM = new WDS("WM", M.RawData);
@@ -428,25 +421,7 @@ namespace Devinno.PLC.Ladder
             }
         }
         #endregion
-        #region SetValue(float)
-        public void SetValue(AddressInfo addr, float Value)
-        {
-            if (addr != null)
-            {
-                if (addr.Type == AddressType.FLOAT)
-                {
-                    if (addr.Code == "R")
-                    {
-                        RealMemories mems = R;
-                        
-                        if (mems != null && addr.Index < mems.Size)
-                            mems[addr.Index] = Value;
-                    }
-                }
-            }
-        }
-        #endregion
-
+        
         #region GetValue()
         public object GetValue(AddressInfo addr)
         {

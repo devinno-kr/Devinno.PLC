@@ -25,7 +25,7 @@ namespace Devinno.PLC.Ladder
     }
     #endregion
     #region enum : AddressType
-    public enum AddressType { UNKNOWN, BIT, WORD, FLOAT, BIT_WORD }
+    public enum AddressType { UNKNOWN, BIT, WORD, FLOAT, DWORD, BIT_WORD }
     #endregion
     #region enum : EngineState
     public enum EngineState
@@ -33,7 +33,8 @@ namespace Devinno.PLC.Ladder
         DISCONNECTED,
         STANDBY,
         RUN,
-        DOWNLOADING
+        DOWNLOADING,
+        ERROR,
     }
     #endregion
 
@@ -58,8 +59,8 @@ namespace Devinno.PLC.Ladder
             AddressInfo ret = null;
             if (address != null)
             {
-                #region P,M,T,C,D,R
-                if (address.Length > 1 && new string[] { "P", "M", "T", "C", "D", "R" }.Contains(address.Substring(0, 1).ToUpper()))
+                #region P,M,T,C,D
+                if (address.Length > 1 && new string[] { "P", "M", "T", "C", "D" }.Contains(address.Substring(0, 1).ToUpper()))
                 {
                     var ac = address.Substring(0, 1).ToUpper();
                     var sp = address.Substring(1).Split('.');
@@ -94,36 +95,49 @@ namespace Devinno.PLC.Ladder
                                     };
                                 }
                                 break;
-                            case "R":
-                                {
-                                    ret = new AddressInfo()
-                                    {
-                                        Code = ac,
-                                        Index = nai,
-                                        BitIndex = null,
-                                        Type = AddressType.FLOAT
-                                    };
-                                }
-                                break;
                         }
                     }
                     #endregion
                     #region ex) D10.A
-                    else if (sp.Length == 2 && (ac == "T" || ac == "C" || ac == "D") && int.TryParse(sp[0], out nai) && int.TryParse(sp[1], System.Globalization.NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
+                    else if (sp.Length == 2 && (ac == "T" || ac == "C" || ac == "D"))
                     {
                         switch (ac)
                         {
                             //case "T":
-                            //case "C":
+                            case "C":
                             case "D":
                                 {
-                                    ret = new AddressInfo()
+                                    if (sp[1] == "R")
                                     {
-                                        Code = ac,
-                                        Index = nai,
-                                        BitIndex = nbi,
-                                        Type = AddressType.BIT_WORD
-                                    };
+                                        ret = new AddressInfo()
+                                        {
+                                            Code = ac,
+                                            Index = 0,
+                                            Type = AddressType.FLOAT,
+                                        };
+                                    }
+                                    else if (sp[1] == "DW")
+                                    {
+                                        ret = new AddressInfo()
+                                        {
+                                            Code = ac,
+                                            Index = 0,
+                                            Type = AddressType.DWORD,
+                                        };
+                                    }
+                                    else
+                                    {
+                                        if (int.TryParse(sp[0], out nai) && int.TryParse(sp[1], NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
+                                        {
+                                            ret = new AddressInfo()
+                                            {
+                                                Code = ac,
+                                                Index = nai,
+                                                BitIndex = nbi,
+                                                Type = AddressType.BIT_WORD
+                                            };
+                                        }
+                                    }
                                 }
                                 break;
                         }
@@ -158,20 +172,44 @@ namespace Devinno.PLC.Ladder
                     }
                     #endregion
                     #region ex) WM5.0
-                    else if (sp.Length == 2 && (ac == "WM" || ac == "WP") && int.TryParse(sp[0], out nai) && int.TryParse(sp[1], System.Globalization.NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
+                    else if (sp.Length == 2 && (ac == "WM" || ac == "WP"))
                     {
                         switch (ac)
                         {
                             case "WP":
                             case "WM":
                                 {
-                                    ret = new AddressInfo()
+                                    if (sp[1] == "R")
                                     {
-                                        Code = ac,
-                                        Index = nai,
-                                        BitIndex = nbi,
-                                        Type = AddressType.BIT_WORD
-                                    };
+                                        ret = new AddressInfo()
+                                        {
+                                            Code = ac,
+                                            Index = 0,
+                                            Type = AddressType.FLOAT,
+                                        };
+                                    }
+                                    else if (sp[1] == "DW")
+                                    {
+                                        ret = new AddressInfo()
+                                        {
+                                            Code = ac,
+                                            Index = 0,
+                                            Type = AddressType.DWORD,
+                                        };
+                                    }
+                                    else
+                                    {
+                                        if (int.TryParse(sp[0], out nai) && int.TryParse(sp[1], NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
+                                        {
+                                            ret = new AddressInfo()
+                                            {
+                                                Code = ac,
+                                                Index = nai,
+                                                BitIndex = nbi,
+                                                Type = AddressType.BIT_WORD
+                                            };
+                                        }
+                                    }
                                 }
                                 break;
                         }
@@ -192,7 +230,7 @@ namespace Devinno.PLC.Ladder
     }
     #endregion
     #region class : DebugInfo
-    public enum DebugInfoType { Contact, Timer, Word, Float }
+    public enum DebugInfoType { Contact, Timer, Word, Float, DWord }
     public class DebugInfo
     {
         public DebugInfoType Type { get; set; }
@@ -331,10 +369,28 @@ namespace Devinno.PLC.Ladder
 
         public static FuncInfo Parse(string code)
         {
-            var s = code.Trim();
-            var fn = s.Split(' ').FirstOrDefault();
-            var args = s.Substring(fn.Length).Split(',').Select(x => x.Trim()).ToList();
-            return new FuncInfo() { Name = fn, Args = args };
+            FuncInfo ret = null;
+
+            var regFunc = @"\b[^()]+\((.*)\)$";
+            var regArgs = @"(?:[^,()]+((?:\((?>[^()]+|\((?<open>)|\)(?<-open>))*\)))*)+";
+
+            var match = Regex.Match(code, regFunc);
+            if (match.Success && match.Groups.Count >= 2)
+            {
+                var sFunc = match.Groups[0].Value;
+                var sArgs = match.Groups[1].Value;
+                var matches = Regex.Matches(sArgs, regArgs);
+
+                var bsucs = matches.Where(x => x.Success).Count() == matches.Count;
+                if (bsucs)
+                {
+                    var name = sFunc.Substring(0, sFunc.IndexOf('('));
+                    var args = matches.Select(x => x.Value).ToList();
+                    ret = new FuncInfo() { Name = name, Args = args };
+                }
+            }
+
+            return ret;
         }
     }
     #endregion

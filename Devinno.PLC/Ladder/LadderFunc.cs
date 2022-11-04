@@ -506,7 +506,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("TON [릴레이], 설정값");
+                sb.AppendLine("TON( [릴레이], 설정값 )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : T 릴레이만 사용가능");
                 sb.AppendLine("설정값 : 1 에서 65535 까지의 상수값 또는 D 레지스터 사용가능");
@@ -532,7 +532,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("TAON [릴레이], 설정값");
+                sb.AppendLine("TAON( [릴레이], 설정값 )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : T 릴레이만 사용가능");
                 sb.AppendLine("설정값 : 1 에서 65535 까지의 상수값 또는 D 레지스터 사용가능");
@@ -558,7 +558,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("TOFF [릴레이], 설정값");
+                sb.AppendLine("TOFF( [릴레이], 설정값 )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : T 릴레이만 사용가능");
                 sb.AppendLine("설정값 : 1 에서 65535 까지의 상수값 또는 D 레지스터 사용가능");
@@ -584,7 +584,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("TAOFF [릴레이], 설정값");
+                sb.AppendLine("TAOFF( [릴레이], 설정값 )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : T 릴레이만 사용가능");
                 sb.AppendLine("설정값 : 1 에서 65535 까지의 상수값 또는 D 레지스터 사용가능");
@@ -610,7 +610,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("TMON [릴레이], 설정값");
+                sb.AppendLine("TMON( [릴레이], 설정값 )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : T 릴레이만 사용가능");
                 sb.AppendLine("설정값 : 1 에서 65535 까지의 상수값 또는 D 레지스터 사용가능");
@@ -636,7 +636,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("TAMON [릴레이], 설정값");
+                sb.AppendLine("TAMON( [릴레이], 설정값 )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : T 릴레이만 사용가능");
                 sb.AppendLine("설정값 : 1 에서 65535 까지의 상수값 또는 D 레지스터 사용가능");
@@ -662,7 +662,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("SETOUT [릴레이]");
+                sb.AppendLine("SETOUT( [릴레이] )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : P, M 릴레이만 사용가능");
                 sb.AppendLine("");
@@ -687,7 +687,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("RSTOUT [릴레이]");
+                sb.AppendLine("RSTOUT( [릴레이] )");
                 sb.AppendLine("");
                 sb.AppendLine("릴레이 : P, M 릴레이만 사용가능");
                 sb.AppendLine("");
@@ -712,7 +712,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("MCS 번호");
+                sb.AppendLine("MCS( 번호 )");
                 sb.AppendLine("");
                 sb.AppendLine("번호 : MCS 번호");
                 sb.AppendLine("");
@@ -738,7 +738,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("MCSCLR 번호");
+                sb.AppendLine("MCSCLR( 번호 )");
                 sb.AppendLine("");
                 sb.AppendLine("번호 : MCS 번호");
                 sb.AppendLine("");
@@ -764,7 +764,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("WXCHG 메모리1, 메모리2");
+                sb.AppendLine("WXCHG( 메모리1, 메모리2 )");
                 sb.AppendLine("");
                 sb.AppendLine("메모리1 : 교환할 메모리1");
                 sb.AppendLine("메모리2 : 교환할 메모리2");
@@ -790,7 +790,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("DIST 메모리1, 메모리2, 개수");
+                sb.AppendLine("DIST( 메모리1, 메모리2, 개수 )");
                 sb.AppendLine("");
                 sb.AppendLine("메모리1 : 소스 메모리");
                 sb.AppendLine("메모리2 : 타깃 메모리 시작");
@@ -817,7 +817,7 @@ namespace Devinno.PLC.Ladder
                 var sb = new StringBuilder();
                 sb.AppendLine("· 문법");
                 sb.AppendLine("");
-                sb.AppendLine("UNIT 메모리1, 메모리2, 개수");
+                sb.AppendLine("UNIT( 메모리1, 메모리2, 개수 )");
                 sb.AppendLine("");
                 sb.AppendLine("메모리1 : 소스 메모리 시작");
                 sb.AppendLine("메모리2 : 타깃 메모리");

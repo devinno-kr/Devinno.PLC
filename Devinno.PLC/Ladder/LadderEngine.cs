@@ -34,24 +34,6 @@ namespace Devinno.PLC.Ladder
         public const int CMD_STATE = 5;
         #endregion
 
-        #region Comment
-        /*
-
-         ※ 주소체계
-
-         비트영역 -    비트       : M0, M100             
-                      워드       : WM0, WM10                   //   
-
-         워드영역 -    비트       : D0.0 ~ D0.F                 //      D0.0 ~ D0.16
-                      바이트     : D0.B0 ~ D0.B1               //      D0.Byte0 ~ D0.Byte1
-                      워드       : D0, D100     
-                      더블워드    : DW(D0), DW(D100),           
-                                   DW(D0).B0 ~ DW(D0).B3,      //      DW(D0).Byte0 ~ DW(D0).Byte3
-                                   DW(D0).0 ~ DW(D0).1F        //      DW(D0).0 ~ DW(D0).31
-         */
-
-        #endregion
-
         #region Properties
         public string ID { get; private set; }
         public EngineState State { get; private set; } = EngineState.STANDBY;
@@ -67,7 +49,6 @@ namespace Devinno.PLC.Ladder
         public TMRS T => Document.Base?.T;
         public WDS C => Document.Base?.C;
         public WDS D => Document.Base?.D;
-        public RealMemories R => Document.Base?.R;
         public WDS WM => Document.Base?.WP;
         public WDS WP => Document.Base?.WM;
         #endregion
@@ -271,18 +252,22 @@ namespace Devinno.PLC.Ladder
                 {
                     if (IsStart && Document != null && State != EngineState.DOWNLOADING && Document.Initialized)
                     {
-                        LoopStart?.Invoke(this, null);
+                        try
+                        {
+                            LoopStart?.Invoke(this, null);
 
-                        var prev = DateTime.Now;
+                            var prev = DateTime.Now;
 
-                        DeviceLoad?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
-                        if (Document != null) Document.LadderLoop();
-                        DeviceOuput?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
+                            DeviceLoad?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
+                            if (Document != null) Document.LadderLoop();
+                            DeviceOuput?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
 
-                        var ts = DateTime.Now - prev;
-                        LoopTime = Convert.ToInt64(ts.TotalMilliseconds);
+                            var ts = DateTime.Now - prev;
+                            LoopTime = Convert.ToInt64(ts.TotalMilliseconds);
 
-                        LoopEnd?.Invoke(this, null);
+                            LoopEnd?.Invoke(this, null);
+                        }
+                        catch { State = EngineState.ERROR; }
                     }
                     Thread.Sleep(LadderLoopInterval);
                 }

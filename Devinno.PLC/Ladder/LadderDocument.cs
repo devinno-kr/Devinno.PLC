@@ -28,7 +28,6 @@ namespace Devinno.PLC.Ladder
         public int T_Count { get; set; } = LadderBase.MAX_T_COUNT;
         public int C_Count { get; set; } = LadderBase.MAX_C_COUNT;
         public int D_Count { get; set; } = LadderBase.MAX_D_COUNT;
-        public int R_Count { get; set; } = LadderBase.MAX_R_COUNT;
 
         [Newtonsoft.Json.JsonIgnore]
         public int S_Count => LadderBase.MAX_S_COUNT;
@@ -79,7 +78,6 @@ namespace Devinno.PLC.Ladder
                             case "T": ret = r.Index < T_Count; break;
                             case "C": ret = r.Index < C_Count; break;
                             case "D": ret = r.Index < D_Count; break;
-                            case "R": ret = r.Index < R_Count; break;
                             case "WP": ret = r.Index < P_Count / 16; break;
                             case "WM": ret = r.Index < M_Count / 16; break;
                         }
