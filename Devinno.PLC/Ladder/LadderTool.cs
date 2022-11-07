@@ -1099,7 +1099,7 @@ namespace Devinno.PLC.Ladder
                                     if (cd.StartsWith("TON") || cd.StartsWith("TAON") || cd.StartsWith("TOFF") || cd.StartsWith("TAOFF") || cd.StartsWith("TMON") || cd.StartsWith("TAMON"))
                                     {
                                         var fn = FuncInfo.Parse(v.Code);
-                                        if (fn.Args.Count == 2 && doc.ValidSymbol(fn.Args[0]))
+                                        if (fn != null && fn.Args.Count == 2 && doc.ValidSymbol(fn.Args[0]))
                                         {
                                             sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Timer = {doc.GetMemCode(fn.Args[0])};");
                                         }
@@ -1135,6 +1135,18 @@ namespace Devinno.PLC.Ladder
                                     sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
                                     sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Float = {doc.GetMemCode(saddr)};");
                                     sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Float;");
+                                }
+                                else if(addr.Type == AddressType.DWORD)
+                                {
+                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].DWord = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.DWord;");
+                                }
+                                else if(addr.Type == AddressType.TEXT)
+                                {
+                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Text = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Text;");
                                 }
                                 else if (addr.Type == AddressType.BIT || addr.Type == AddressType.BIT_WORD)
                                 {
@@ -1184,8 +1196,10 @@ namespace Devinno.PLC.Ladder
                 sb.AppendLine("{");
                 sb.AppendLine("     partial class LadderApp");
                 sb.AppendLine("     {");
+        
                 #region Used Address
                 var ls = new List<string>();
+                #region Address List
                 foreach (var v in doc.Ladders)
                 {
                     switch (v.ItemType)
@@ -1255,7 +1269,8 @@ namespace Devinno.PLC.Ladder
                                 }
                                 else
                                 {
-                                    foreach (var wd in GetWordsForCode(v.Code))
+                                    //foreach (var wd in GetWordsForCode(v.Code))
+                                    foreach (var wd in GetWords(v.Code))
                                     {
                                         if (doc.ValidSymbol(wd))
                                         {
@@ -1279,71 +1294,266 @@ namespace Devinno.PLC.Ladder
 
                     }
                 }
+                #endregion
 
-                foreach(var v in ls)
+                foreach (var v in ls)
                 {
                     var mem = doc.GetMemCode(v);
+                    AddressInfo r;
+                    if (AddressInfo.TryParse(mem, out r))
+                    {
+                        var ac = r.Code;
+                        var nai = r.Index;
+                        #region ex) D10
+                        if (r.Type == AddressType.BIT || r.Type == AddressType.WORD || r.Type == AddressType.DWORD || r.Type == AddressType.FLOAT || r.Type == AddressType.TEXT)
+                        {
+                            string s = "";
 
-                    var ac = v.Substring(0, 1).ToUpper();
-                    var sp = v.Substring(1).Split('.');
-                    int nai, nbi;
-                    #region ex) D10
-                    if (sp.Length == 1 && int.TryParse(v.Substring(1), out nai))
-                    {
-                        switch (ac)
-                        {
-                            case "P": sb.AppendLine("         public bool " + mem + " { get => P[" + nai + "]; set => P[" + nai + "] = value; }"); break;
-                            case "M": sb.AppendLine("         public bool " + mem + " { get => M[" + nai + "]; set => M[" + nai + "] = value; }"); break;
-                            case "T": sb.AppendLine("         public int " + mem + " { get => T[" + nai + "]; set => T[" + nai + "] = value; }"); break;
-                            case "C": sb.AppendLine("         public int " + mem + " { get => C[" + nai + "]; set => C[" + nai + "] = value; }"); break;
-                            case "D": sb.AppendLine("         public int " + mem + " { get => D[" + nai + "]; set => D[" + nai + "] = value; }"); break;
+                            if (r.Code == "P" && r.Type == AddressType.BIT) s = "         public bool " + mem + " { get => P[" + nai + "]; set => P[" + nai + "] = value; }";
+                            if (r.Code == "M" && r.Type == AddressType.BIT) s = "         public bool " + mem + " { get => M[" + nai + "]; set => M[" + nai + "] = value; }";
+                            if (r.Code == "T" && r.Type == AddressType.WORD) s = "         public int " + mem + " { get => T[" + nai + "]; set => T[" + nai + "] = value; }";
+                            if (r.Code == "C" && r.Type == AddressType.WORD) s = "         public int " + mem + " { get => C[" + nai + "]; set => C[" + nai + "] = value; }";
+                            if (r.Code == "D" && r.Type == AddressType.WORD) s = "         public int " + mem + " { get => D[" + nai + "]; set => D[" + nai + "] = value; }";
+
+                            #region T
+                            if (r.Code == "T" && r.Type == AddressType.DWORD)
+                            {
+                                s += $"         public long {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToUInt32(T.RawData, T.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(value & 0xFFFFFFFF)), 0, T.RawData, T.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "T" && r.Type == AddressType.FLOAT)
+                            {
+                                s += $"         public float {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToSingle(T.RawData, T.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(value), 0, T.RawData, T.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "T" && r.Type == AddressType.TEXT)
+                            {
+                                s += $"         public string {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => Encoding.UTF8.GetString(T.RawData, T.W[{nai}].Index, {r.TextLength} * 2).Trim('\0');\r\n";
+                                s += $"             set\r\n";
+                                s += $"             {{\r\n";
+                                s += $"                 var ba = Encoding.UTF8.GetBytes(value);\r\n";
+                                s += $"                 Array.Copy(ba, 0, T.RawData, T.W[{nai}].Index, Math.Min({r.TextLength} * 2, ba.Length));\r\n";
+                                s += $"             }}\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            #endregion
+                            #region C
+                            if (r.Code == "C" && r.Type == AddressType.DWORD)
+                            {
+                                s += $"         public long {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToUInt32(C.RawData, C.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(value & 0xFFFFFFFF)), 0, C.RawData, C.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "C" && r.Type == AddressType.FLOAT)
+                            {
+                                s += $"         public float {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToSingle(C.RawData, C.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(value), 0, C.RawData, C.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "C" && r.Type == AddressType.TEXT)
+                            {
+                                s += $"         public string {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => Encoding.UTF8.GetString(C.RawData, C.W[{nai}].Index, {r.TextLength} * 2).Trim('\0');\r\n";
+                                s += $"             set\r\n";
+                                s += $"             {{\r\n";
+                                s += $"                 var ba = Encoding.UTF8.GetBytes(value);\r\n";
+                                s += $"                 Array.Copy(ba, 0, C.RawData, C.W[{nai}].Index, Math.Min({r.TextLength} * 2, ba.Length));\r\n";
+                                s += $"             }}\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            #endregion
+                            #region D
+                            if (r.Code == "D" && r.Type == AddressType.DWORD)
+                            {
+                                s += $"         public long {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToUInt32(D.RawData, D.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(value & 0xFFFFFFFF)), 0, D.RawData, D.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "D" && r.Type == AddressType.FLOAT)
+                            {
+                                s += $"         public float {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToSingle(D.RawData, D.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(value), 0, D.RawData, D.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "D" && r.Type == AddressType.TEXT)
+                            {
+                                s += $"         public string {mem}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => Encoding.UTF8.GetString(D.RawData, D.W[{nai}].Index, {r.TextLength} * 2).Trim('\\0');\r\n";
+                                s += $"             set\r\n";
+                                s += $"             {{\r\n";
+                                s += $"                 var ba = Encoding.UTF8.GetBytes(value);\r\n";
+                                s += $"                 Array.Copy(ba, 0, D.RawData, D.W[{nai}].Index, Math.Min({r.TextLength} * 2, ba.Length));\r\n";
+                                s += $"             }}\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            #endregion
+
+                            sb.AppendLine(s);
                         }
-                    }
-                    #endregion
-                    #region ex) D10.A
-                    else if (sp.Length == 2 && (ac == "T" || ac == "C" || ac == "D") && int.TryParse(sp[0], out nai) && int.TryParse(sp[1], System.Globalization.NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi))
-                    {
-                        switch (ac)
+                        #endregion
+                        #region ex) D10.A
+                        else if (r.Type == AddressType.BIT_WORD && r.BitIndex.HasValue)
                         {
-                            case "T": sb.AppendLine("         public bool " + mem + " { get => T.W[" + nai + "].Bit"+ nbi + "; set => T.W[" + nai + "].Bit" + nbi + " = value; }"); break;
-                            case "C": sb.AppendLine("         public bool " + mem + " { get => C.W[" + nai + "].Bit" + nbi + "; set => C.W[" + nai + "].Bit" + nbi + " = value; }"); break;
-                            case "D": sb.AppendLine("         public bool " + mem + " { get => D.W[" + nai + "].Bit" + nbi + "; set => D.W[" + nai + "].Bit" + nbi + " = value; }"); break;
+                            var nbi = r.BitIndex.Value;
+
+                            string s = "";
+
+                            if (r.Code == "T" && r.Type == AddressType.BIT_WORD) s = "         public bool " + mem + " { get => T.W[" + nai + "].Bit" + nbi + "; set => T.W[" + nai + "].Bit" + nbi + " = value; }";
+                            if (r.Code == "C" && r.Type == AddressType.BIT_WORD) s = "         public bool " + mem + " { get => C.W[" + nai + "].Bit" + nbi + "; set => C.W[" + nai + "].Bit" + nbi + " = value; }";
+                            if (r.Code == "D" && r.Type == AddressType.BIT_WORD) s = "         public bool " + mem + " { get => D.W[" + nai + "].Bit" + nbi + "; set => D.W[" + nai + "].Bit" + nbi + " = value; }";
+
+                            sb.AppendLine(s);
                         }
+                        #endregion
                     }
-                    #endregion
                 }
                 #endregion
                 #region Symbol
-                foreach(var v in doc.Symbols)
+                foreach (var v in doc.Symbols)
                 {
-                    var ac = v.Address.Substring(0, 1).ToUpper();
-                    var sp = v.Address.Substring(1).Split('.');
-                    int nai, nbi;
+                    AddressInfo r;
+                    if (AddressInfo.TryParse(v.Address, out r))
+                    {
+                        var ac = r.Code;
+                        var nai = r.Index;
+                        #region ex) D10
+                        if (r.Type == AddressType.BIT || r.Type == AddressType.WORD || r.Type == AddressType.DWORD || r.Type == AddressType.FLOAT || r.Type == AddressType.TEXT)
+                        {
+                            string s = "";
 
-                    #region ex) D10
-                    if (sp.Length == 1 && int.TryParse(v.Address.Substring(1), out nai))
-                    {
-                        switch (ac)
-                        {
-                            case "P": sb.AppendLine("         public bool " + v.SymbolName + " { get => P[" + nai + "]; set => P[" + nai + "] = value; }"); break;
-                            case "M": sb.AppendLine("         public bool " + v.SymbolName + " { get => M[" + nai + "]; set => M[" + nai + "] = value; }"); break;
-                            case "T": sb.AppendLine("         public int " + v.SymbolName + " { get => T[" + nai + "]; set => T[" + nai + "] = value; }"); break;
-                            case "C": sb.AppendLine("         public int " + v.SymbolName + " { get => C[" + nai + "]; set => C[" + nai + "] = value; }"); break;
-                            case "D": sb.AppendLine("         public int " + v.SymbolName + " { get => D[" + nai + "]; set => D[" + nai + "] = value; }"); break;
+                            if (r.Code == "P" && r.Type == AddressType.BIT) s = "         public bool " + v.SymbolName + " { get => P[" + nai + "]; set => P[" + nai + "] = value; }";
+                            if (r.Code == "M" && r.Type == AddressType.BIT) s = "         public bool " + v.SymbolName + " { get => M[" + nai + "]; set => M[" + nai + "] = value; }";
+                            if (r.Code == "T" && r.Type == AddressType.WORD) s = "         public int " + v.SymbolName + " { get => T[" + nai + "]; set => T[" + nai + "] = value; }";
+                            if (r.Code == "C" && r.Type == AddressType.WORD) s = "         public int " + v.SymbolName + " { get => C[" + nai + "]; set => C[" + nai + "] = value; }";
+                            if (r.Code == "D" && r.Type == AddressType.WORD) s = "         public int " + v.SymbolName + " { get => D[" + nai + "]; set => D[" + nai + "] = value; }";
+
+                            #region T
+                            if (r.Code == "T" && r.Type == AddressType.DWORD)
+                            {
+                                s += $"         public long {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToUInt32(T.RawData, T.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(value & 0xFFFFFFFF)), 0, T.RawData, T.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "T" && r.Type == AddressType.FLOAT)
+                            {
+                                s += $"         public float {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToSingle(T.RawData, T.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(value), 0, T.RawData, T.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "T" && r.Type == AddressType.TEXT)
+                            {
+                                s += $"         public string {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => Encoding.UTF8.GetString(T.RawData, T.W[{nai}].Index, {r.TextLength} * 2).Trim('\0');\r\n";
+                                s += $"             set\r\n";
+                                s += $"             {{\r\n";
+                                s += $"                 var ba = Encoding.UTF8.GetBytes(value);\r\n";
+                                s += $"                 Array.Copy(ba, 0, T.RawData, T.W[{nai}].Index, Math.Min({r.TextLength} * 2, ba.Length));\r\n";
+                                s += $"             }}\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            #endregion
+                            #region C
+                            if (r.Code == "C" && r.Type == AddressType.DWORD)
+                            {
+                                s += $"         public long {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToUInt32(C.RawData, C.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(value & 0xFFFFFFFF)), 0, C.RawData, C.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "C" && r.Type == AddressType.FLOAT)
+                            {
+                                s += $"         public float {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToSingle(C.RawData, C.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(value), 0, C.RawData, C.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "C" && r.Type == AddressType.TEXT)
+                            {
+                                s += $"         public string {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => Encoding.UTF8.GetString(C.RawData, C.W[{nai}].Index, {r.TextLength} * 2).Trim('\0');\r\n";
+                                s += $"             set\r\n";
+                                s += $"             {{\r\n";
+                                s += $"                 var ba = Encoding.UTF8.GetBytes(value);\r\n";
+                                s += $"                 Array.Copy(ba, 0, C.RawData, C.W[{nai}].Index, Math.Min({r.TextLength} * 2, ba.Length));\r\n";
+                                s += $"             }}\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            #endregion
+                            #region D
+                            if (r.Code == "D" && r.Type == AddressType.DWORD)
+                            {
+                                s += $"         public long {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToUInt32(D.RawData, D.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(Convert.ToUInt32(value & 0xFFFFFFFF)), 0, D.RawData, D.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "D" && r.Type == AddressType.FLOAT)
+                            {
+                                s += $"         public float {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => BitConverter.ToSingle(D.RawData, D.W[{nai}].Index);\r\n";
+                                s += $"             set => Array.Copy(BitConverter.GetBytes(value), 0, D.RawData, D.W[{nai}].Index, 4);\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            if (r.Code == "D" && r.Type == AddressType.TEXT)
+                            {
+                                s += $"         public string {v.SymbolName}\r\n";
+                                s += $"         {{\r\n";
+                                s += $"             get => Encoding.UTF8.GetString(D.RawData, D.W[{nai}].Index, {r.TextLength} * 2).Trim('\0');\r\n";
+                                s += $"             set\r\n";
+                                s += $"             {{\r\n";
+                                s += $"                 var ba = Encoding.UTF8.GetBytes(value);\r\n";
+                                s += $"                 Array.Copy(ba, 0, D.RawData, D.W[{nai}].Index, Math.Min({r.TextLength} * 2, ba.Length));\r\n";
+                                s += $"             }}\r\n";
+                                s += $"         }}\r\n";
+                            }
+                            #endregion
+                     
+                            sb.AppendLine(s);
                         }
-                    }
-                    #endregion
-                    #region ex) D10.A
-                    else if (sp.Length == 2 && (ac == "T" || ac == "C" || ac == "D") && int.TryParse(sp[0], out nai) && int.TryParse(sp[1], System.Globalization.NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi))
-                    {
-                        switch (ac)
+                        #endregion
+                        #region ex) D10.A
+                        else if (r.Type == AddressType.BIT_WORD && r.BitIndex.HasValue)
                         {
-                            case "T": sb.AppendLine("         public bool " + v.SymbolName + " { get => T.W[" + nai + "].Bit" + nbi + "; set => T.W[" + nai + "].Bit" + nbi + " = value; }"); break;
-                            case "C": sb.AppendLine("         public bool " + v.SymbolName + " { get => C.W[" + nai + "].Bit" + nbi + "; set => C.W[" + nai + "].Bit" + nbi + " = value; }"); break;
-                            case "D": sb.AppendLine("         public bool " + v.SymbolName + " { get => D.W[" + nai + "].Bit" + nbi + "; set => D.W[" + nai + "].Bit" + nbi + " = value; }"); break;
+                            var nbi = r.BitIndex.Value;
+
+                            string s = "";
+
+                            if (r.Code == "T" && r.Type == AddressType.BIT_WORD) s = "         public bool " + v.SymbolName + " { get => T.W[" + nai + "].Bit" + nbi + "; set => T.W[" + nai + "].Bit" + nbi + " = value; }";
+                            if (r.Code == "C" && r.Type == AddressType.BIT_WORD) s = "         public bool " + v.SymbolName + " { get => C.W[" + nai + "].Bit" + nbi + "; set => C.W[" + nai + "].Bit" + nbi + " = value; }";
+                            if (r.Code == "D" && r.Type == AddressType.BIT_WORD) s = "         public bool " + v.SymbolName + " { get => D.W[" + nai + "].Bit" + nbi + "; set => D.W[" + nai + "].Bit" + nbi + " = value; }";
+
+                            sb.AppendLine(s);
                         }
+                        #endregion
                     }
-                    #endregion
                 }
                 #endregion
                 sb.AppendLine("     }");
@@ -1352,6 +1562,9 @@ namespace Devinno.PLC.Ladder
             }
 
             #endregion
+
+            File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LadderApp.cs"), codeLadder);
+            File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LadderApp.Designer.cs"), codeSymbol);
 
             return new string[] { codeLadder, codeSymbol };
         }

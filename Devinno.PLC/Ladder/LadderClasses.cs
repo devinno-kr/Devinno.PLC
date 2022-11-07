@@ -25,7 +25,7 @@ namespace Devinno.PLC.Ladder
     }
     #endregion
     #region enum : AddressType
-    public enum AddressType { UNKNOWN, BIT, WORD, FLOAT, DWORD, BIT_WORD }
+    public enum AddressType { UNKNOWN, BIT, WORD, FLOAT, DWORD, BIT_WORD, TEXT }
     #endregion
     #region enum : EngineState
     public enum EngineState
@@ -53,6 +53,8 @@ namespace Devinno.PLC.Ladder
         public int Index { get; set; } = 0;
         public int? BitIndex { get; set; } = null;
         public AddressType Type { get; set; }
+        public string Ex { get; set; }
+        public int TextLength { get; set; }
 
         public static AddressInfo Parse(string address)
         {
@@ -63,7 +65,7 @@ namespace Devinno.PLC.Ladder
                 if (address.Length > 1 && new string[] { "P", "M", "T", "C", "D" }.Contains(address.Substring(0, 1).ToUpper()))
                 {
                     var ac = address.Substring(0, 1).ToUpper();
-                    var sp = address.Substring(1).Split('.');
+                    var sp = address.Substring(1).Split('.', '_');
                     int nai, nbi;
                     #region ex) D10
                     if (sp.Length == 1 && int.TryParse(address.Substring(1), out nai))
@@ -99,7 +101,7 @@ namespace Devinno.PLC.Ladder
                     }
                     #endregion
                     #region ex) D10.A
-                    else if (sp.Length == 2 && (ac == "T" || ac == "C" || ac == "D"))
+                    else if (sp.Length == 2 && (ac == "T" || ac == "C" || ac == "D") && int.TryParse(sp[0], out nai))
                     {
                         switch (ac)
                         {
@@ -112,8 +114,9 @@ namespace Devinno.PLC.Ladder
                                         ret = new AddressInfo()
                                         {
                                             Code = ac,
-                                            Index = 0,
+                                            Index = nai,
                                             Type = AddressType.FLOAT,
+                                            Ex = sp[1],
                                         };
                                     }
                                     else if (sp[1] == "DW")
@@ -121,20 +124,38 @@ namespace Devinno.PLC.Ladder
                                         ret = new AddressInfo()
                                         {
                                             Code = ac,
-                                            Index = 0,
+                                            Index = nai,
                                             Type = AddressType.DWORD,
+                                            Ex = sp[1],
                                         };
+                                    }
+                                    else if (sp[1].StartsWith("S"))
+                                    {
+                                        var s = sp[1].Substring(1);
+                                        int len;
+                                        if (int.TryParse(s, out len))
+                                        {
+                                            ret = new AddressInfo()
+                                            {
+                                                Code = ac,
+                                                Index = nai,
+                                                Type = AddressType.TEXT,
+                                                Ex = sp[1],
+                                                TextLength = len,
+                                            };
+                                        }
                                     }
                                     else
                                     {
-                                        if (int.TryParse(sp[0], out nai) && int.TryParse(sp[1], NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
+                                        if (int.TryParse(sp[1], NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
                                         {
                                             ret = new AddressInfo()
                                             {
                                                 Code = ac,
                                                 Index = nai,
                                                 BitIndex = nbi,
-                                                Type = AddressType.BIT_WORD
+                                                Type = AddressType.BIT_WORD,
+                                                Ex = sp[1],
                                             };
                                         }
                                     }
@@ -172,7 +193,7 @@ namespace Devinno.PLC.Ladder
                     }
                     #endregion
                     #region ex) WM5.0
-                    else if (sp.Length == 2 && (ac == "WM" || ac == "WP"))
+                    else if (sp.Length == 2 && (ac == "WM" || ac == "WP") && int.TryParse(sp[0], out nai))
                     {
                         switch (ac)
                         {
@@ -184,8 +205,9 @@ namespace Devinno.PLC.Ladder
                                         ret = new AddressInfo()
                                         {
                                             Code = ac,
-                                            Index = 0,
+                                            Index = nai,
                                             Type = AddressType.FLOAT,
+                                            Ex = sp[1],
                                         };
                                     }
                                     else if (sp[1] == "DW")
@@ -193,20 +215,38 @@ namespace Devinno.PLC.Ladder
                                         ret = new AddressInfo()
                                         {
                                             Code = ac,
-                                            Index = 0,
+                                            Index = nai,
                                             Type = AddressType.DWORD,
+                                            Ex = sp[1],
                                         };
+                                    }
+                                    else if (sp[1].StartsWith("S"))
+                                    {
+                                        var s = sp[1].Substring(1);
+                                        int len;
+                                        if (int.TryParse(s, out len))
+                                        {
+                                            ret = new AddressInfo()
+                                            {
+                                                Code = ac,
+                                                Index = nai,
+                                                Type = AddressType.TEXT,
+                                                Ex = sp[1],
+                                                TextLength = len,
+                                            };
+                                        }
                                     }
                                     else
                                     {
-                                        if (int.TryParse(sp[0], out nai) && int.TryParse(sp[1], NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
+                                        if (int.TryParse(sp[1], NumberStyles.HexNumber, CultureInfo.CurrentCulture, out nbi) && (nbi >= 0 && nbi < 16))
                                         {
                                             ret = new AddressInfo()
                                             {
                                                 Code = ac,
                                                 Index = nai,
                                                 BitIndex = nbi,
-                                                Type = AddressType.BIT_WORD
+                                                Type = AddressType.BIT_WORD,
+                                                Ex = sp[1],
                                             };
                                         }
                                     }
@@ -230,7 +270,7 @@ namespace Devinno.PLC.Ladder
     }
     #endregion
     #region class : DebugInfo
-    public enum DebugInfoType { Contact, Timer, Word, Float, DWord }
+    public enum DebugInfoType { Contact, Timer, Word, Float, DWord, Text }
     public class DebugInfo
     {
         public DebugInfoType Type { get; set; }
@@ -240,7 +280,8 @@ namespace Devinno.PLC.Ladder
         public int Timer { get; set; }
         public int Word { get; set; }
         public float Float { get; set; }
-
+        public string Text { get; set; }
+        public long DWord { get; set; }
 
         #region ToPacketString
         public static string ToPacketString(List<DebugInfo> ls)
@@ -276,6 +317,17 @@ namespace Devinno.PLC.Ladder
                         sb.Append($"{v.Float};");
                         break;
 
+                    case DebugInfoType.DWord:
+                        sb.Append($"D:");
+                        sb.Append($"{v.Row},{v.Column}:");
+                        sb.Append($"{v.DWord};");
+                        break;
+
+                    case DebugInfoType.Text:
+                        sb.Append($"S:");
+                        sb.Append($"{v.Row},{v.Column}:");
+                        sb.Append($"{v.Text};");
+                        break;
                 }
             }
 
@@ -298,6 +350,8 @@ namespace Devinno.PLC.Ladder
                     var sp = ls2[1].Split(',');
                     int row, col, vn;
                     float vf;
+                    long vl;
+                    string vs;
                     if (sp.Length == 2 && int.TryParse(sp[0], out row) && int.TryParse(sp[1], out col))
                     {
                         switch (ls2[0])
@@ -348,6 +402,40 @@ namespace Devinno.PLC.Ladder
                                         Row = row,
                                         Column = col,
                                         Float = vf
+                                    });
+                                }
+                                break;
+                            case "D":
+                                if (ls2.Count == 3 && long.TryParse(ls2[2], out vl))
+                                {
+                                    ret.Add(new DebugInfo()
+                                    {
+                                        Type = DebugInfoType.DWord,
+                                        Row = row,
+                                        Column = col,
+                                        DWord = vl
+                                    });
+                                }
+                                break;
+                            case "S":
+                                if (ls2.Count == 3)
+                                {
+                                    ret.Add(new DebugInfo()
+                                    {
+                                        Type = DebugInfoType.Text,
+                                        Row = row,
+                                        Column = col,
+                                        Text = ls2[2],
+                                    });
+                                }
+                                else if(ls2.Count == 2)
+                                {
+                                    ret.Add(new DebugInfo()
+                                    {
+                                        Type = DebugInfoType.Text,
+                                        Row = row,
+                                        Column = col,
+                                        Text = "",
                                     });
                                 }
                                 break;

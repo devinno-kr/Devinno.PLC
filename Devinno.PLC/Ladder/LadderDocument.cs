@@ -84,13 +84,49 @@ namespace Devinno.PLC.Ladder
                     }
                     else
                     {
-                        switch (r.Code)
+                        if (r.Type == AddressType.BIT_WORD)
                         {
-                            case "T": ret = r.Index < T_Count && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
-                            case "C": ret = r.Index < C_Count && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
-                            case "D": ret = r.Index < D_Count && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
-                            case "WP": ret = r.Index < P_Count / 16 && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
-                            case "WM": ret = r.Index < M_Count / 16 && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
+                            switch (r.Code)
+                            {
+                                case "T": ret = r.Index < T_Count && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
+                                case "C": ret = r.Index < C_Count && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
+                                case "D": ret = r.Index < D_Count && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
+                                case "WP": ret = r.Index < P_Count / 16 && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
+                                case "WM": ret = r.Index < M_Count / 16 && (r.BitIndex.HasValue && r.BitIndex.Value >= 0 && r.BitIndex.Value < 16); break;
+                            }
+                        }
+                        else if(r.Type == AddressType.DWORD)
+                        {
+                            switch (r.Code)
+                            {
+                                case "T": ret = r.Index + 1 < T_Count; break;
+                                case "C": ret = r.Index + 1 < C_Count; break;
+                                case "D": ret = r.Index + 1 < D_Count; break;
+                                case "WP": ret = r.Index + 1 < P_Count / 16; break;
+                                case "WM": ret = r.Index + 1 < M_Count / 16; break;
+                            }
+                        }
+                        else if(r.Type == AddressType.FLOAT)
+                        {
+                            switch (r.Code)
+                            {
+                                case "T": ret = r.Index + 1 < T_Count; break;
+                                case "C": ret = r.Index + 1 < C_Count; break;
+                                case "D": ret = r.Index + 1 < D_Count; break;
+                                case "WP": ret = r.Index + 1 < P_Count / 16; break;
+                                case "WM": ret = r.Index + 1 < M_Count / 16; break;
+                            }
+                        }
+                        else if(r.Type == AddressType.TEXT)
+                        {
+                            switch (r.Code)
+                            {
+                                case "T": ret = r.Index + r.TextLength < T_Count; break;
+                                case "C": ret = r.Index + r.TextLength < C_Count; break;
+                                case "D": ret = r.Index + r.TextLength < D_Count; break;
+                                case "WP": ret = r.Index + r.TextLength < P_Count / 16; break;
+                                case "WM": ret = r.Index + r.TextLength < M_Count / 16; break;
+                            }
                         }
                     }
                 }

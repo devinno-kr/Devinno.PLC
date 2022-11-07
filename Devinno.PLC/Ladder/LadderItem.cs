@@ -35,6 +35,12 @@ namespace Devinno.PLC.Ladder
         public int Watch { get; set; }
 
         [JsonIgnore]
+        public long WatchL { get; set; }
+
+        [JsonIgnore]
+        public string WatchT { get; set; }
+
+        [JsonIgnore]
         public float WatchF { get; set; }
 
         [JsonIgnore]
