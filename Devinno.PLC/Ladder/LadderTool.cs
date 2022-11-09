@@ -1563,8 +1563,8 @@ namespace Devinno.PLC.Ladder
 
             #endregion
 
-            File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LadderApp.cs"), codeLadder);
-            File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LadderApp.Designer.cs"), codeSymbol);
+            //File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LadderApp.cs"), codeLadder);
+            //File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "LadderApp.Designer.cs"), codeSymbol);
 
             return new string[] { codeLadder, codeSymbol };
         }
@@ -1575,19 +1575,23 @@ namespace Devinno.PLC.Ladder
         {
             bool ret = false;
             var nd = ls.LastOrDefault();
-
-            if (nd.ItemType == LadderItemType.NONE)
+            if (nd != null)
             {
-                for (int i = ls.Count - 2; i >= 0; i--)
+                if (nd.ItemType == LadderItemType.NONE)
                 {
-                    var v = ls[i];
-                    if (v.ItemType == LadderItemType.NONE) nd = v;
-                    else { nd = v; break; }
+                    for (int i = ls.Count - 2; i >= 0; i--)
+                    {
+                        var v = ls[i];
+                        if (v.ItemType == LadderItemType.NONE) nd = v;
+                        else { nd = v; break; }
+                    }
+
+                    if (nd.ItemType == LadderItemType.LINE_H ||
+                        nd.ItemType == LadderItemType.IN_A || nd.ItemType == LadderItemType.IN_B ||
+                        nd.ItemType == LadderItemType.NOT ||
+                        nd.ItemType == LadderItemType.RISING_EDGE || nd.ItemType == LadderItemType.FALLING_EDGE) ret = true;
                 }
-
-                if (nd.ItemType == LadderItemType.LINE_H) ret = true;
             }
-
             return ret;
         }
         #endregion
