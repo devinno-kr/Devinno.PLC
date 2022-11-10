@@ -864,17 +864,17 @@ namespace Devinno.PLC.Ladder
                                                     case "MCS":
                                                         {
                                                             int idx = Convert.ToInt32(fn.Args[0]);
-                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Use = true;                                     //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Value = _result_;                               //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
                                                     case "MCSCLR":
                                                         {
                                                             int idx = Convert.ToInt32(fn.Args[0]);
-                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Use = false;                                    //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Value = false;                                  //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     {nm} = _result_;                                           //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
                                                     #endregion
@@ -1030,9 +1030,9 @@ namespace Devinno.PLC.Ladder
                                                     case "MCSCLR":
                                                         {
                                                             int idx = Convert.ToInt32(fn.Args[0]);
-                                                            sb.AppendLine($"                     {nm} = MCS[{idx}].Use;                                //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Use = false;                               //{nd.Row},{nd.Col}");
                                                             sb.AppendLine($"                     MCS[{idx}].Value = false;                             //{nd.Row},{nd.Col}");
+                                                            sb.AppendLine($"                     {nm} = MCS[{idx}].Use;                                //{nd.Row},{nd.Col}");
                                                         }
                                                         break;
                                                     #endregion
@@ -1086,14 +1086,14 @@ namespace Devinno.PLC.Ladder
                                 case LadderItemType.IN_B:
                                 case LadderItemType.NOT:
                                 case LadderItemType.OUT_COIL:
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Contact = __{v.Row}_{v.Col};");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Contact = __{v.Row}_{v.Col};");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
                                     break;
 
                                 case LadderItemType.OUT_FUNC:
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Contact = __{v.Row}_{v.Col};");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Contact = __{v.Row}_{v.Col};");
 
                                     var cd = v.Code.ToUpper();
                                     if (cd.StartsWith("TON") || cd.StartsWith("TAON") || cd.StartsWith("TOFF") || cd.StartsWith("TAOFF") || cd.StartsWith("TMON") || cd.StartsWith("TAMON"))
@@ -1101,19 +1101,19 @@ namespace Devinno.PLC.Ladder
                                         var fn = FuncInfo.Parse(v.Code);
                                         if (fn != null && fn.Args.Count == 2 && doc.ValidSymbol(fn.Args[0]))
                                         {
-                                            sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Timer = {doc.GetMemCode(fn.Args[0])};");
+                                            sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Timer = {doc.GetMemCode(fn.Args[0])};");
                                         }
-                                        sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Timer;");
+                                        sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Timer;");
                                     }
                                     else
-                                        sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
+                                        sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
                                     break;
 
                                 case LadderItemType.RISING_EDGE:
                                 case LadderItemType.FALLING_EDGE:
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Contact = __{v.Row}_{v.Col}.Value;");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Contact = __{v.Row}_{v.Col}.Value;");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
                                     break;
                             }
                         }
@@ -1126,33 +1126,33 @@ namespace Devinno.PLC.Ladder
                             {
                                 if (addr.Type == AddressType.WORD)
                                 {
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Word = {doc.GetMemCode(saddr)};");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Word;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Word = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Word;");
                                 }
                                 else if (addr.Type == AddressType.FLOAT)
                                 {
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Float = {doc.GetMemCode(saddr)};");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Float;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Float = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Float;");
                                 }
                                 else if(addr.Type == AddressType.DWORD)
                                 {
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].DWord = {doc.GetMemCode(saddr)};");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.DWord;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].DWord = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.DWord;");
                                 }
                                 else if(addr.Type == AddressType.TEXT)
                                 {
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Text = {doc.GetMemCode(saddr)};");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Text;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Text = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Text;");
                                 }
                                 else if (addr.Type == AddressType.BIT || addr.Type == AddressType.BIT_WORD)
                                 {
-                                    sb.AppendLine($"         if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Contact = {doc.GetMemCode(saddr)};");
-                                    sb.AppendLine($"         Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
+                                    sb.AppendLine($"            if (!Debugs.ContainsKey(\"{v.Row},{v.Col}\")) Debugs.Add(\"{v.Row},{v.Col}\", new DebugInfo() {{ Row = {v.Row}, Column = {v.Col} }});");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Contact = {doc.GetMemCode(saddr)};");
+                                    sb.AppendLine($"            Debugs[\"{v.Row},{v.Col}\"].Type = DebugInfoType.Contact;");
                                 }
                             }
                         }
