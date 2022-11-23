@@ -418,14 +418,17 @@ namespace Devinno.PLC.Ladder
                                 }
                                 break;
                             case "S":
-                                if (ls2.Count == 3)
+                                if (ls2.Count >= 3)
                                 {
+                                    var ival = v.IndexOf(":", 2);
+                                    var val = ival != -1 && ival + 1 < v.Length ? v.Substring(ival + 1) : "";
+
                                     ret.Add(new DebugInfo()
                                     {
                                         Type = DebugInfoType.Text,
                                         Row = row,
                                         Column = col,
-                                        Text = ls2[2],
+                                        Text = val,
                                     });
                                 }
                                 else if(ls2.Count == 2)

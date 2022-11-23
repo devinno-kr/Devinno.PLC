@@ -140,7 +140,7 @@ namespace Devinno.PLC.Ladder
     #region class : ModbusMonitor
     public class ModbusMonitor
     {
-        public int Slave { get; set; }
+        public byte Slave { get; set; }
         public ModbusFunction Func { get; set; } = ModbusFunction.BITREAD_F1;
         public int Address { get; set; }
         public int Length { get; set; }
@@ -150,7 +150,7 @@ namespace Devinno.PLC.Ladder
     public enum BindMode { BitRead, BitWrite, WordRead, WordWrite }
     public class ModbusBind
     {
-        public int Slave { get; set; }
+        public byte Slave { get; set; }
         public int Address { get; set; }
         public BindMode Mode { get; set; } = BindMode.BitRead;
 

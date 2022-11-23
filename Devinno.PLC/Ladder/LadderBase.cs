@@ -421,7 +421,53 @@ namespace Devinno.PLC.Ladder
             }
         }
         #endregion
-        
+        #region SetValue(float)
+        public void SetValue(AddressInfo addr, float Value)
+        {
+            if (addr != null)
+            {
+                if (addr.Type == AddressType.FLOAT)
+                {
+                    WDS mems = null;
+                    if (addr.Code == "C") mems = C;
+                    else if (addr.Code == "D") mems = D;
+                    else if (addr.Code == "WP") mems = WP;
+                    else if (addr.Code == "WM") mems = WM;
+
+                    if (mems != null && addr.Index < mems.Size)
+                    {
+                        // mems[addr.Index] = Value;
+                        Array.Copy(BitConverter.GetBytes(Value), 0, mems.RawData, mems.W[addr.Index].Index, 4);
+                    }
+
+                }
+            }
+        }
+        #endregion
+        #region SetValue(string)
+        public void SetValue(AddressInfo addr, string Value)
+        {
+            if (addr != null)
+            {
+                if (addr.Type == AddressType.TEXT)
+                {
+                    WDS mems = null;
+                    if (addr.Code == "C") mems = C;
+                    else if (addr.Code == "D") mems = D;
+                    else if (addr.Code == "WP") mems = WP;
+                    else if (addr.Code == "WM") mems = WM;
+
+                    if (mems != null && addr.Index < mems.Size)
+                    {
+                        var ba = Encoding.UTF8.GetBytes(Value);
+                        Array.Copy(ba, 0, mems.RawData, mems.W[addr.Index].Index, Math.Min(addr.TextLength * 2, ba.Length)); 
+                    }
+
+                }
+            }
+        }
+        #endregion
+
         #region GetValue()
         public object GetValue(AddressInfo addr)
         {
@@ -783,7 +829,7 @@ namespace Devinno.PLC.Ladder
                                         foreach (var v in ls)
                                         {
                                             var va = AddressInfo.Parse(v);
-                                            Base.SetValue(va, val);
+                                            if (va.Type == AddressType.BIT || va.Type == AddressType.BIT_WORD) Base.SetValue(va, val);
                                         }
                                     }
                                 }
@@ -809,7 +855,7 @@ namespace Devinno.PLC.Ladder
                                         foreach (var v in ls)
                                         {
                                             var va = AddressInfo.Parse(v);
-                                            Base.SetValue(va, val);
+                                            if (va.Type == AddressType.WORD) Base.SetValue(va, val);
                                         }
                                     }
                                 }
@@ -954,7 +1000,7 @@ namespace Devinno.PLC.Ladder
                                         foreach (var v in ls)
                                         {
                                             var va = AddressInfo.Parse(v);
-                                            Base.SetValue(va, val);
+                                            if (va.Type == AddressType.BIT || va.Type == AddressType.BIT_WORD) Base.SetValue(va, val);
                                         }
                                     }
                                 }
@@ -980,7 +1026,7 @@ namespace Devinno.PLC.Ladder
                                         foreach (var v in ls)
                                         {
                                             var va = AddressInfo.Parse(v);
-                                            Base.SetValue(va, val);
+                                            if (va.Type == AddressType.WORD) Base.SetValue(va, val);
                                         }
                                     }
                                 }
@@ -1018,6 +1064,17 @@ namespace Devinno.PLC.Ladder
                                 int n = 0;
                                 var str = Encoding.UTF8.GetString(s.Datas);
                                 if (int.TryParse(str, out n)) Base.SetValue(addr, n);
+                            }
+                            else if(addr.Type == AddressType.FLOAT)
+                            {
+                                float n = 0F;
+                                var str = Encoding.UTF8.GetString(s.Datas);
+                                if (float.TryParse(str, out n)) Base.SetValue(addr, n);
+                            }
+                            else if(addr.Type == AddressType.TEXT)
+                            {
+                                var str = Encoding.UTF8.GetString(s.Datas);
+                                Base.SetValue(addr, str);
                             }
                         }
                     };

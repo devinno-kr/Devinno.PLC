@@ -12,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Devinno.PLC.Interface", "..\Devinno.PLC.Interface\Devinno.PLC.Interface.csproj", "{4B2FE9FF-6AB7-49F4-A586-A0B5BCD3B9D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LadderEditor", "..\LadderEditor\LadderEditor.csproj", "{FC53D9F4-F2ED-48D5-B146-A539F9C85657}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LadderEditor", "..\LadderEditor\LadderEditor.csproj", "{FC53D9F4-F2ED-48D5-B146-A539F9C85657}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
