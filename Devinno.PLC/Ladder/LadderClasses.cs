@@ -45,7 +45,6 @@ namespace Devinno.PLC.Ladder
         public string Address { get; set; }
     }
     #endregion
-
     #region class : AddressInfo
     public class AddressInfo
     {

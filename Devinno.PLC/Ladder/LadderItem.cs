@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Devinno.PLC.Ladder
 {
+    #region class : LadderItem
     public class LadderItem : IComparable
     {
         #region Properties
@@ -104,6 +105,13 @@ namespace Devinno.PLC.Ladder
         }
         #endregion
         #endregion
-
     }
+    #endregion
+
+    #region enum : LadderItemType
+    public enum LadderItemType
+    {
+        NONE, LINE_H, LINE_V, IN_A, IN_B, OUT_COIL, OUT_FUNC, RISING_EDGE, FALLING_EDGE, NOT
+    }
+    #endregion
 }

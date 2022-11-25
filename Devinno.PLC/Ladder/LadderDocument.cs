@@ -29,9 +29,6 @@ namespace Devinno.PLC.Ladder
         public int C_Count { get; set; } = LadderBase.MAX_C_COUNT;
         public int D_Count { get; set; } = LadderBase.MAX_D_COUNT;
 
-        [Newtonsoft.Json.JsonIgnore]
-        public int S_Count => LadderBase.MAX_S_COUNT;
-
         public List<SymbolInfo> Symbols { get; set; } = new List<SymbolInfo>();
         public List<LadderLibrary> Libraries { get; set; } = new List<LadderLibrary>();
         public string Communications { get; set; }
