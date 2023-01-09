@@ -2,7 +2,8 @@
 
 
 ## 개요
-  * PLC 기능을 수행할 수 있는 라이브러리
+  * 작성한 레더를 구동시킬 수 있는 엔진 
+  * [레더 에디터](https://github.com/devinno-kr/LadderEditor)
     <br />
     <br />  
 
@@ -101,8 +102,25 @@ namespace RpiPLC
 }
 ```
 
-* **설명** 
-``` 
+* **설명**
 
+|Input|Device|Output|Device|
+|:---:|:---:|:---:|:---:|
+|Pin07|P11|Pin12|P1|
+|Pin11|P12|Pin16|P2|
+|Pin13|P13|Pin18|P3|
+|Pin15|P14|Pin22|P4|
+|Pin29|P15|Pin32|P5|
+|Pin31|P16|Pin36|P6|
+|Pin33|P17|Pin38|P7|
+|Pin35|P18|Pin40|P8|
+
+``` 
+DeviceLoad :    장치 정보를 읽어올 때 발생하는 이벤트. 라즈베리파이의 GPIO 상태를 읽어 해당 장치에 적용
+
+DeviceOutput :  장치 정보를 출력할 때 발생하는 이벤트. 장치 상태를 읽어 라즈베리파이의 GPIO에 출력 
+
+Start :         레더 엔진 구동 시작
 ```
+
 <br />
