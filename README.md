@@ -3,7 +3,7 @@
 
 ## 개요
   * 작성한 레더를 구동시킬 수 있는 엔진 
-  * [레더 에디터](https://github.com/devinno-kr/LadderEditor)
+  * [레더에디터](https://github.com/devinno-kr/LadderEditor) [다운로드](https://github.com/devinno-kr/LadderEditor/releases)
     <br />
     <br />  
 
