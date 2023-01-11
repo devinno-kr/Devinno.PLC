@@ -17,12 +17,12 @@
     <br />  
 
 ## 목차
-  * [RpiPLC](#RpiPLC)
+  * [RpiPLC](#1-RpiPLC)
     <br />
     <br />  
 
 ## 예시
-### 1. RpiPLC
+### 1 RpiPLC
 * **코드** 
 ```csharp
 using Devinno.PLC.Ladder;
