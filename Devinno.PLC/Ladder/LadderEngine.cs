@@ -67,6 +67,8 @@ namespace Devinno.PLC.Ladder
         public event EventHandler<LadderEventArgs> DeviceOuput;
         public event EventHandler<SocketEventArgs> Connected;
         public event EventHandler<SocketEventArgs> Disconnected;
+        public event EventHandler EngineStart;
+        public event EventHandler EngineStop;
         #endregion
 
         #region Constructor
@@ -80,8 +82,8 @@ namespace Devinno.PLC.Ladder
                 DisconnectCheckTime = DisconnectCheckTime,
             };
             comm.MessageRequest += Comm_MessageRequest;
-            comm.SocketConnected += (o, s) => Connected?.Invoke(o, s);
-            comm.SocketDisconnected += (o, s) => Disconnected?.Invoke(o, s);
+            comm.SocketConnected += (o, s) => { OnConnected(); Connected?.Invoke(o, s); };
+            comm.SocketDisconnected += (o, s) => { OnDisconnected(); Disconnected?.Invoke(o, s); };
             udp = new UDP();
             #endregion
             #region Timer
@@ -224,6 +226,16 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Method
+        #region Virtual
+        public virtual void OnLoopStart() { }
+        public virtual void OnLoopEnd() { }
+        public virtual void OnDeviceLoad() { }
+        public virtual void OnDeviceOuput() { }
+        public virtual void OnConnected() { }
+        public virtual void OnDisconnected() { }
+        public virtual void OnEngineStart() { }
+        public virtual void OnEngineStop() { }
+        #endregion
         #region Start
         public void Start()
         {
@@ -254,20 +266,23 @@ namespace Devinno.PLC.Ladder
                     {
                         try
                         {
-                            LoopStart?.Invoke(this, null);
+                            OnLoopStart(); LoopStart?.Invoke(this, null); 
 
                             var prev = DateTime.Now;
 
-                            DeviceLoad?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
+                            OnDeviceLoad(); DeviceLoad?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
                             if (Document != null) Document.LadderLoop();
-                            DeviceOuput?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
+                            OnDeviceOuput(); DeviceOuput?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
 
                             var ts = DateTime.Now - prev;
                             LoopTime = Convert.ToInt64(ts.TotalMilliseconds);
 
-                            LoopEnd?.Invoke(this, null);
+                            OnLoopEnd(); LoopEnd?.Invoke(this, null);
                         }
-                        catch { State = EngineState.ERROR; }
+                        catch(Exception e) 
+                        {
+                            State = EngineState.ERROR; 
+                        }
                     }
                     Thread.Sleep(LadderLoopInterval);
                 }
@@ -289,6 +304,8 @@ namespace Devinno.PLC.Ladder
             { IsBackground = true };
             th2.Start();
             #endregion
+
+            OnEngineStart();
         }
         #endregion
         #region Stop
@@ -301,6 +318,8 @@ namespace Devinno.PLC.Ladder
             tmr.Stop();
 
             IsStart = false;
+
+            OnEngineStop();
         }
         #endregion
         #endregion
