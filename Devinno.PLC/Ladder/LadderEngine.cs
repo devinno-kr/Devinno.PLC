@@ -169,6 +169,12 @@ namespace Devinno.PLC.Ladder
                                     }
                                     else
                                     {
+                                        /*
+                                        foreach (var v in rv.Result.Diagnostics)
+                                            if (v.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+                                                Console.WriteLine("err : " + v.GetMessage());
+                                        */
+
                                         State = EngineState.STANDBY;
                                     }
                                    

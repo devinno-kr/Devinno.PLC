@@ -464,7 +464,7 @@ namespace Devinno.PLC.Ladder
                    options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
                 #endregion
 
-                var result = compilation.Emit(Path.Combine(assemblyName));
+                var result = compilation.Emit(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName));
                 ret = new CompileResult() { Result = result };
             }
             return ret;
