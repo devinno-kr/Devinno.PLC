@@ -25,13 +25,11 @@ namespace Devinno.PLC.Ladder
     public class LadderEngine
     {
         #region Const
-        internal const string PATH_APP = "ld.app";
-        private const string PATH_ID = "engine.id";
-
         public const int CMD_DOWNLOAD = 1;
         public const int CMD_UPLOAD = 3;
         public const int CMD_DEBUG = 4;
         public const int CMD_STATE = 5;
+
         #endregion
 
         #region Properties
@@ -51,6 +49,9 @@ namespace Devinno.PLC.Ladder
         public WDS D => Document.Base?.D;
         public WDS WM => Document.Base?.WP;
         public WDS WP => Document.Base?.WM;
+
+        private string PATH_ID = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "engine.id");
+        internal static string PATH_APP => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ld.app");
         #endregion
 
         #region Member Variable

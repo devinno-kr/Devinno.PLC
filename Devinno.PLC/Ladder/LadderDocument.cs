@@ -175,8 +175,8 @@ namespace Devinno.PLC.Ladder
 
     internal class RuntimeLadderDocument : LadderDocument
     {
-        #region Const
-        public const string RUNTIME_LADDER_FILE = "ladder.ld";
+        #region Static
+        public static string RUNTIME_LADDER_FILE => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ladder.ld");
         #endregion
 
         #region Properties
@@ -258,7 +258,7 @@ namespace Devinno.PLC.Ladder
             this.Communications = doc.Communications;
             this.Libraries = doc.Libraries;
 
-            Serialize.JsonSerializeToFile("ladder.ld", this);
+            Serialize.JsonSerializeToFile(RUNTIME_LADDER_FILE, this);
         }
         #endregion
 

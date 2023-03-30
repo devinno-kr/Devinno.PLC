@@ -1044,7 +1044,11 @@ namespace Devinno.PLC.Ladder
                     var lc = Comm as LcMqtt;
                     mqtt = new MQClient();
                     mqtt.BrokerHostName = lc.BrokerIP;
-                    foreach (var v in lc.Subs) mqtt.Subscribe(v.Topic);
+                    foreach (var v in lc.Subs)
+                    {
+                        if (v != null && !string.IsNullOrWhiteSpace(v.Topic))
+                            mqtt.Subscribe(v.Topic);
+                    }
                     mqtt.Start(Guid.NewGuid().ToString());
 
                     mqtt.Received += (o, s) => {
