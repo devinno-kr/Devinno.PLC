@@ -157,7 +157,7 @@ namespace Devinno.PLC.Ladder
                                     #region Doc
                                     var doc = Serialize.JsonDeserialize<LadderDocument>(dm.Doc);
                                     var codes = LadderTool.MakeCode(doc);
-                                    var rv = LadderTool.Compile(codes, PATH_APP, doc.Libraries, false);
+                                    var rv = LadderTool.Compile(codes, Path.GetFileName(PATH_APP), doc.Libraries, false);
                                     #endregion
 
                                     if (rv.Result.Success)
@@ -167,8 +167,10 @@ namespace Devinno.PLC.Ladder
                                         System.Threading.Thread.Sleep(1000);
                                         if (Document.Base != null && Document.Initialized) State = EngineState.RUN;
                                     }
-                                    else State = EngineState.STANDBY;
-
+                                    else
+                                    {
+                                        State = EngineState.STANDBY;
+                                    }
                                    
                                 });
 

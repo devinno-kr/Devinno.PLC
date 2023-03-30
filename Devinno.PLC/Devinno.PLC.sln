@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33205.214
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33130.400
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Devinno.PLC", "Devinno.PLC.csproj", "{E4492CA1-2961-4484-98E9-ACA28FEA6022}"
 EndProject

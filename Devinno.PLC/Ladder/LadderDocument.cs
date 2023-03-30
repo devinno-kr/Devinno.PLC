@@ -273,7 +273,6 @@ namespace Devinno.PLC.Ladder
                 {
                     alc = new LadderAppALC();
                     wr = new WeakReference(alc);
-
                     using (var ms = new MemoryStream(bytes))
                     {
                         var assembly = alc.LoadFromStream(ms);
