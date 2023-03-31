@@ -399,11 +399,14 @@ namespace Devinno.PLC.Ladder
                                 }
                                 else
                                 {
+                                    var msg = v.GetMessage(CultureInfo.CurrentCulture);
+                                    var v1 = v.Descriptor.MessageFormat.ToString();
+
                                     ret.Add(new LadderCheckMessage()
                                     {
                                         Row = row + 1,
                                         Column = col + 1,
-                                        Message = "잘못된 작성된 항목입니다."
+                                        Message = msg
                                     });
                                 }
                             }
