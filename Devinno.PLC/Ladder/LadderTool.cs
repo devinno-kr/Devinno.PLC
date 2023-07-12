@@ -327,12 +327,24 @@ namespace Devinno.PLC.Ladder
                         }
                     }
                     else 
-                    { 
-                        var fn = FuncInfo.Parse(code);
-                        if (fn != null && LadderFunc.Funcs.Where(x => x.Name == fn.Name.ToUpper()).Count() > 0)
+                    {
+                        if (LadderFunc.Funcs.Where(x => x.Name.StartsWith(code.Split('(').Where(x => !string.IsNullOrWhiteSpace(x.Trim())).FirstOrDefault()?.Trim())).Count() > 0)
                         {
-                            var result = LadderFunc.Check(doc, itm);
-                            if (result.Count > 0) ret.AddRange(result);
+                            var fn = FuncInfo.Parse(code);
+                            if (fn != null)
+                            {
+                                var result = LadderFunc.Check(doc, itm);
+                                if (result.Count > 0) ret.AddRange(result);
+                            }
+                            else
+                            {
+                                ret.Add(new LadderCheckMessage()
+                                {
+                                    Row = itm.Row + 1,
+                                    Column = itm.Col + 1,
+                                    Message = "함수 입력 형식이 잘못되었습니다."
+                                });
+                            }
                         }
                         else
                         {

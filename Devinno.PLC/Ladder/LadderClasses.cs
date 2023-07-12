@@ -467,15 +467,15 @@ namespace Devinno.PLC.Ladder
             var match = Regex.Match(code, regFunc);
             if (match.Success && match.Groups.Count >= 2)
             {
-                var sFunc = match.Groups[0].Value;
-                var sArgs = match.Groups[1].Value;
+                var sFunc = match.Groups[0].Value.Trim();
+                var sArgs = match.Groups[1].Value.Trim();
                 var matches = Regex.Matches(sArgs, regArgs);
 
                 var bsucs = matches.Where(x => x.Success).Count() == matches.Count;
                 if (bsucs)
                 {
-                    var name = sFunc.Substring(0, sFunc.IndexOf('('));
-                    var args = matches.Select(x => x.Value).ToList();
+                    var name = sFunc.Substring(0, sFunc.IndexOf('(')).Trim();
+                    var args = matches.Select(x => x.Value.Trim()).ToList();
                     ret = new FuncInfo() { Name = name, Args = args };
                 }
             }
