@@ -157,7 +157,7 @@ namespace Devinno.PLC.Ladder
             _CNT1000++;
             
             _100_ = _CNT100 >= 10;
-            _1000_ = _CNT1000 >= 1000;
+            _1000_ = _CNT1000 >= 100;
 
             _SR_10R = true;
             _SR_F10R = !_SR_F10R;
