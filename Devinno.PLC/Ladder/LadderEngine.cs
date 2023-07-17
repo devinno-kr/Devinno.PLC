@@ -56,6 +56,7 @@ namespace Devinno.PLC.Ladder
 
         #region Member Variable
         TextCommTCPSlave comm;
+        Thread th;
         #endregion
 
         #region Event
@@ -250,9 +251,7 @@ namespace Devinno.PLC.Ladder
             IsStart = true;
 
             #region Thread
-            #region Remark
-            /*
-            th = new Thread(new ThreadStart(() =>
+            th = new Thread(() =>
             {
                 var ptick = DateTime.Now;
                 var pcomm = DateTime.Now;
@@ -300,63 +299,9 @@ namespace Devinno.PLC.Ladder
                     }
                     Thread.Yield();
                 }
-            }))
-            { IsBackground = true, Priority = ThreadPriority.Highest };
+            })
+            { IsBackground = true };
             th.Start();
-            */
-            #endregion
-
-            Task.Run(() => {
-
-                var ptick = DateTime.Now;
-                var pcomm = DateTime.Now;
-
-                while (IsStart)
-                {
-                    if (IsStart && Document != null && State != EngineState.DOWNLOADING && Document.Initialized)
-                    {
-                        var now = DateTime.Now;
-                        #region LadderTick 
-                        if ((now - ptick).TotalMilliseconds >= 10)
-                        {
-                            Document.LadderTick();
-                            ptick = now;
-                        }
-                        #endregion
-                        #region LadderLoop
-                        try
-                        {
-                            OnLoopStart(); LoopStart?.Invoke(this, null);
-
-                            var prev = DateTime.Now;
-
-                            OnDeviceLoad(); DeviceLoad?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
-                            if (Document != null) Document.LadderLoop();
-                            OnDeviceOuput(); DeviceOuput?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
-
-                            var ts = DateTime.Now - prev;
-                            LoopTime = Convert.ToInt64(ts.TotalMilliseconds);
-
-                            OnLoopEnd(); LoopEnd?.Invoke(this, null);
-                        }
-                        catch (Exception e)
-                        {
-                            State = EngineState.ERROR;
-                        }
-                        #endregion
-                        #region CommLoop 
-                        if ((now - pcomm).TotalMilliseconds >= CommunicationLoopInterval)
-                        {
-                            Document.CommunicationLoop();
-                            pcomm = now;
-                        }
-                        #endregion
-                    }
-                    Task.Yield();
-                }
-
-            });
-
             #endregion
 
             OnEngineStart();
