@@ -56,9 +56,6 @@ namespace Devinno.PLC.Ladder
 
         #region Member Variable
         TextCommTCPSlave comm;
-        UDP udp;
-        Thread th, th2;
-        HiResTimer tmr;
         #endregion
 
         #region Event
@@ -85,19 +82,6 @@ namespace Devinno.PLC.Ladder
             comm.MessageRequest += Comm_MessageRequest;
             comm.SocketConnected += (o, s) => { OnConnected(); Connected?.Invoke(o, s); };
             comm.SocketDisconnected += (o, s) => { OnDisconnected(); Disconnected?.Invoke(o, s); };
-            udp = new UDP();
-            #endregion
-            #region Timer
-            tmr = new HiResTimer();
-            tmr.Interval = 10;
-            tmr.Elapsed += (o, s) =>
-            {
-                if (IsStart && Document != null && State != EngineState.DOWNLOADING && Document.Initialized)
-                {
-                    if (Document != null) Document.LadderTick();
-                }
-            };
-            tmr.Start();
             #endregion
             #region ID
             if (File.Exists(PATH_ID)) ID = File.ReadAllText(PATH_ID);
@@ -263,19 +247,32 @@ namespace Devinno.PLC.Ladder
             }
             comm.DisconnectCheckTime = DisconnectCheckTime;
             comm.Start();
-            udp.Start();
             IsStart = true;
 
             #region Thread
+            #region Remark
+            /*
             th = new Thread(new ThreadStart(() =>
             {
+                var ptick = DateTime.Now;
+                var pcomm = DateTime.Now;
+
                 while (IsStart)
                 {
                     if (IsStart && Document != null && State != EngineState.DOWNLOADING && Document.Initialized)
                     {
+                        var now = DateTime.Now;
+                        #region LadderTick 
+                        if ((now - ptick).TotalMilliseconds >= 10)
+                        {
+                            Document.LadderTick();
+                            ptick = now;
+                        }
+                        #endregion
+                        #region LadderLoop
                         try
                         {
-                            OnLoopStart(); LoopStart?.Invoke(this, null); 
+                            OnLoopStart(); LoopStart?.Invoke(this, null);
 
                             var prev = DateTime.Now;
 
@@ -288,47 +285,95 @@ namespace Devinno.PLC.Ladder
 
                             OnLoopEnd(); LoopEnd?.Invoke(this, null);
                         }
-                        catch(Exception e) 
+                        catch (Exception e)
                         {
-                            State = EngineState.ERROR; 
+                            State = EngineState.ERROR;
                         }
+                        #endregion
+                        #region CommLoop 
+                        if ((now - pcomm).TotalMilliseconds >= CommunicationLoopInterval)
+                        {
+                            Document.CommunicationLoop();
+                            pcomm = now;
+                        }
+                        #endregion
                     }
-                    Thread.Sleep(LadderLoopInterval);
+                    Thread.Yield();
                 }
             }))
-            { IsBackground = true };
+            { IsBackground = true, Priority = ThreadPriority.Highest };
             th.Start();
+            */
+            #endregion
 
-            th2 = new Thread(new ThreadStart(() =>
-            {
+            Task.Run(() => {
+
+                var ptick = DateTime.Now;
+                var pcomm = DateTime.Now;
+
                 while (IsStart)
                 {
                     if (IsStart && Document != null && State != EngineState.DOWNLOADING && Document.Initialized)
                     {
-                        if (Document != null) Document.CommunicationLoop();
+                        var now = DateTime.Now;
+                        #region LadderTick 
+                        if ((now - ptick).TotalMilliseconds >= 10)
+                        {
+                            Document.LadderTick();
+                            ptick = now;
+                        }
+                        #endregion
+                        #region LadderLoop
+                        try
+                        {
+                            OnLoopStart(); LoopStart?.Invoke(this, null);
+
+                            var prev = DateTime.Now;
+
+                            OnDeviceLoad(); DeviceLoad?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
+                            if (Document != null) Document.LadderLoop();
+                            OnDeviceOuput(); DeviceOuput?.Invoke(this, new LadderEventArgs() { Base = Document.Base });
+
+                            var ts = DateTime.Now - prev;
+                            LoopTime = Convert.ToInt64(ts.TotalMilliseconds);
+
+                            OnLoopEnd(); LoopEnd?.Invoke(this, null);
+                        }
+                        catch (Exception e)
+                        {
+                            State = EngineState.ERROR;
+                        }
+                        #endregion
+                        #region CommLoop 
+                        if ((now - pcomm).TotalMilliseconds >= CommunicationLoopInterval)
+                        {
+                            Document.CommunicationLoop();
+                            pcomm = now;
+                        }
+                        #endregion
                     }
-                    Thread.Sleep(CommunicationLoopInterval);
+                    Task.Yield();
                 }
-            }))
-            { IsBackground = true };
-            th2.Start();
+
+            });
+
             #endregion
 
             OnEngineStart();
+            EngineStart?.Invoke(this, new EventArgs());
         }
         #endregion
         #region Stop
         public void Stop()
         {
             if (Document != null)    Document.LadderFinalize();
-
+           
             comm.Stop();
-            udp.Stop();
-            tmr.Stop();
 
             IsStart = false;
 
             OnEngineStop();
+            EngineStop?.Invoke(this, new EventArgs());
         }
         #endregion
         #endregion
