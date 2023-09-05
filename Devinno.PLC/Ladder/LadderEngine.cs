@@ -37,10 +37,11 @@ namespace Devinno.PLC.Ladder
         public EngineState State { get; private set; } = EngineState.STANDBY;
         public long LoopTime { get; private set; }
         public bool IsStart { get; private set; }
-        public int LadderLoopInterval { get; } = 0;
-        public int CommunicationLoopInterval { get; } = 10;
+        public int LadderLoopInterval { get; set; } = 0;
+        public int CommunicationLoopInterval { get; set; } = 10;
         public int DisconnectCheckTime { get; set; } = 1000;
         internal RuntimeLadderDocument Document { get; private set; } = new RuntimeLadderDocument();
+        public List<CommItem> Comms => Document.Base.Comms;
 
         public BitMemories P => Document.Base?.P;
         public BitMemories M => Document.Base?.M;

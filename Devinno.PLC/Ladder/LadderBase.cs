@@ -73,6 +73,8 @@ namespace Devinno.PLC.Ladder
         public WDS WM { get; private set; } = null;
         #endregion
 
+        public List<CommItem> Comms => Items;
+
         public Dictionary<string, DebugInfo> Debugs { get; } = new Dictionary<string, DebugInfo>();
         #endregion
 
@@ -594,9 +596,24 @@ namespace Devinno.PLC.Ladder
 
 
 
-    class CommItem
+    public class CommItem
     {
         #region Member Variable
+        public string Type => Comm?.Name;
+        public object Module
+        {
+            get
+            {
+                object ret = null;
+                if (Comm is LcModbusRtuMaster) ret = mdrm;
+                else if (Comm is LcModbusTcpMaster) ret = mdtm;
+                else if (Comm is LcMqtt) ret = mqtt;
+                else if (Comm is LcModbusRtuSlave) ret = mdrs;
+                else if (Comm is LcModbusTcpSlave) ret = mdts;
+                return ret;
+            }
+        }
+
         ILadderComm Comm;
         LadderBase Base;
 
