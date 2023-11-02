@@ -42,6 +42,8 @@ namespace Devinno.PLC.Ladder
 
         public string Port { get; set; } = "";
         public int Baudrate { get; set; } = 115200;
+        public int Interval { get; set; } = 10;
+        public int Timeout { get; set; } = 100;
 
         public List<ModbusMonitor> Monitors { get; set; } = new List<ModbusMonitor>();
         public List<ModbusBind> Binds { get; set; } = new List<ModbusBind>();
@@ -88,6 +90,8 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         public string RemoteIP { get; set; } = "";
+        public int Interval { get; set; } = 10;
+        public int Timeout { get; set; } = 100;
 
         public List<ModbusMonitor> Monitors { get; set; } = new List<ModbusMonitor>();
         public List<ModbusBind> Binds { get; set; } = new List<ModbusBind>();

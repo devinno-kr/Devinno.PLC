@@ -806,6 +806,8 @@ namespace Devinno.PLC.Ladder
                     #region Props
                     mdrm.Port = lc.Port;
                     mdrm.Baudrate = lc.Baudrate;
+                    mdrm.Interval = lc.Interval;
+                    mdrm.Timeout = lc.Timeout;
                     #endregion
                     #region AutoRead
                     foreach (var v in lc.Monitors)
@@ -977,6 +979,8 @@ namespace Devinno.PLC.Ladder
                     mdtm = new ModbusTCPMaster() { AutoStart = false };
                     #region Props
                     mdtm.RemoteIP = lc.RemoteIP;
+                    mdtm.Interval = lc.Interval;
+                    mdtm.Timeout = lc.Timeout;
                     #endregion
                     #region AutoRead
                     foreach (var v in lc.Monitors)
