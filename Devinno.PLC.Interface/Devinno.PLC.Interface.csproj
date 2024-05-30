@@ -5,8 +5,7 @@
     <Authors>Devinno</Authors>
     <Company>Devinno</Company>
     <Product>Devinno.PLC</Product>
-    <PackageIcon></PackageIcon>
-    <PackageIconUrl />
+    <PackageIconUrl>https://raw.githubusercontent.com/devinno-kr/devinno-kr/master/ico.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/devinno-kr/Devinno.PLC</RepositoryUrl>
     <Description>PLC Runtime Interface</Description>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
