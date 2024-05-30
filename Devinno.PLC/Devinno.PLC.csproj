@@ -1,19 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
-    <Version>1.0.0.11</Version>
-    <AssemblyVersion>1.0.0.11</AssemblyVersion>
-    <FileVersion>1.0.0.11</FileVersion>
-    <PackageIcon>ico.png</PackageIcon>
+    <TargetFramework>net6.0</TargetFramework>
+    <Version>1.0.0.12</Version>
+    <PackageIcon></PackageIcon>
     <Description>PLC Runtime Library</Description>
     <Authors>Devinno</Authors>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageLicenseFile></PackageLicenseFile>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/devinno-kr/Devinno.PLC</RepositoryUrl>
-    <PackageIconUrl />
+    <PackageIconUrl>https://raw.githubusercontent.com/devinno-kr/devinno-kr/master/ico.png</PackageIconUrl>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="C:\Users\hy752\.nuget\packages\devinno\1.1.0.12\contentFiles\any\net5.0\ico.png" />
+  </ItemGroup>
 
 
 
@@ -28,14 +31,6 @@
 
 
   <ItemGroup>
-    <None Include="..\ico.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-    <None Include="..\LICENSE.md">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
     <None Include="..\README.md" Link="README.md" />
   </ItemGroup>
 
