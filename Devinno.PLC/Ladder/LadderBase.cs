@@ -79,11 +79,11 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Member Variable
-        protected bool _SR_10R = false, _SR_100R = false, _SR_1000R = false;
-        protected bool _SR_F10R = false, _SR_F100R = false, _SR_F1000R = false;
+        protected bool _SR_10R = false, _SR_20R = false, _SR_50R = false, _SR_100R = false, _SR_200R = false, _SR_250R = false, _SR_500R = false, _SR_1000R = false;
+        protected bool _SR_F10R = false, _SR_F20R = false, _SR_F50R = false, _SR_F100R = false, _SR_F200R = false, _SR_F250R = false, _SR_F500R = false, _SR_F1000R = false;
         protected bool _SR_BEGIN = false;
         protected bool _100_ = false, _1000_ = false;
-        protected int _CNT100 = 0, _CNT1000 = 0;
+        protected int _CNT20 = 0, _CNT50 = 0, _CNT100 = 0, _CNT200 = 0, _CNT250 = 0, _CNT500 = 0, _CNT1000 = 0;
 
         protected MCS[] MCS = new MCS[16];
 
@@ -155,7 +155,12 @@ namespace Devinno.PLC.Ladder
         public void LadderTick()
         {
             #region Special Relay
+            _CNT20++;
+            _CNT50++;
             _CNT100++;
+            _CNT200++;
+            _CNT250++;
+            _CNT500++;
             _CNT1000++;
             
             _100_ = _CNT100 >= 10;
@@ -164,11 +169,46 @@ namespace Devinno.PLC.Ladder
             _SR_10R = true;
             _SR_F10R = !_SR_F10R;
 
+            if (_CNT20 >= 2)
+            {
+                _SR_20R = true;
+                _SR_F20R = !_SR_F20R;
+                _CNT20 = 0;
+            }
+
+            if (_CNT50 >= 5)
+            {
+                _SR_50R = true;
+                _SR_F50R = !_SR_F50R;
+                _CNT50 = 0;
+            }
+
             if (_CNT100 >= 10)
             {
                 _SR_100R = true;
                 _SR_F100R = !_SR_F100R;
                 _CNT100 = 0;
+            }
+
+            if (_CNT200 >= 20)
+            {
+                _SR_200R = true;
+                _SR_F200R = !_SR_F200R;
+                _CNT200 = 0;
+            }
+
+            if (_CNT250 >= 25)
+            {
+                _SR_250R = true;
+                _SR_F250R = !_SR_F250R;
+                _CNT250 = 0;
+            }
+
+            if (_CNT500 >= 50)
+            {
+                _SR_500R = true;
+                _SR_F500R = !_SR_F500R;
+                _CNT500 = 0;
             }
 
             if (_CNT1000 >= 100)

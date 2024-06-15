@@ -51,15 +51,89 @@ namespace Devinno.PLC.Ladder
             if ((itm.ItemType == LadderItemType.OUT_COIL) || (itm.ItemType == LadderItemType.OUT_FUNC))
             {
                 #region List
-                List<LadderItem> mls = new List<LadderItem>();
-                for (int i = 0; i < itms.Count; i++)
                 {
-                    var v = itms[i].Clone();
-                    if (mls.Count > 0 && mls[i - 1].VerticalLine && mls[i - 1].Row == v.Row - 1) mls[i - 1].ItemType = LadderItemType.NONE;
-                    mls.Add(v);
+                    List<LadderItem> mls = new List<LadderItem>();
+                    for (int i = 0; i < itms.Count; i++)
+                    {
+                        var v = itms[i].Clone();
+                        if (mls.Count > 0 && mls[i - 1].VerticalLine && mls[i - 1].Row == v.Row - 1) mls[i - 1].ItemType = LadderItemType.NONE;
+                        mls.Add(v);
+                    }
+                    result.Add(mls);
                 }
-                result.Add(mls);
                 #endregion
+
+                if(itm.VerticalLine)
+                {
+                    bool bEnt = false;
+
+                    #region 위로 이동 - 우측위
+                    if (dic.ContainsKey(righttop) && !dic.ContainsKey(right))
+                    {
+                        LadderItem next = dic[righttop];
+                        if (next.VerticalLine && !itms.Contains(next))
+                        {
+                            bEnt = true;
+                            Reent(next, dic, result, faild, new List<LadderItem>(itms.ToArray()));
+                        }
+                    }
+                    #endregion
+                    #region 위로 이동
+                    if (dic.ContainsKey(top))
+                    {
+                        LadderItem next = dic[top];
+                        if (next.VerticalLine && !itms.Contains(next))
+                        {
+                            bEnt = true;
+                            Reent(next, dic, result, faild, new List<LadderItem>(itms.ToArray()));
+                        }
+                    }
+                    #endregion
+                    #region 우측 이동
+                    if (dic.ContainsKey(right))
+                    {
+                        LadderItem next = dic[right];
+                        if (
+                            (itm.ItemType == LadderItemType.IN_A) ||
+                            (itm.ItemType == LadderItemType.IN_B) ||
+                            (itm.ItemType == LadderItemType.FALLING_EDGE) ||
+                            (itm.ItemType == LadderItemType.RISING_EDGE) ||
+                            (itm.ItemType == LadderItemType.NOT) ||
+                            (itm.ItemType == LadderItemType.LINE_H)
+                            && !itms.Contains(next)
+                          )
+                        {
+                            bEnt = true;
+                            Reent(next, dic, result, faild, new List<LadderItem>(itms.ToArray()));
+                        }
+                    }
+                    #endregion
+                    #region 아래 이동
+                    if (dic.ContainsKey(bottom))
+                    {
+                        LadderItem next = dic[bottom];
+                        if (itm.VerticalLine && !itms.Contains(next))
+                        {
+                            bEnt = true;
+                            Reent(next, dic, result, faild, new List<LadderItem>(itms.ToArray()));
+                        }
+                    }
+                    #endregion
+
+                    #region List
+                    if (!bEnt)
+                    {
+                        List<LadderItem> mls = new List<LadderItem>();
+                        for (int i = 0; i < itms.Count; i++)
+                        {
+                            var v = itms[i].Clone();
+                            if (mls.Count > 0 && mls[i - 1].VerticalLine && mls[i - 1].Row == v.Row - 1) mls[i - 1].ItemType = LadderItemType.NONE;
+                            mls.Add(v);
+                        }
+                        faild.Add(mls);
+                    }
+                    #endregion
+                }
             }
             else
             {
@@ -251,7 +325,7 @@ namespace Devinno.PLC.Ladder
             var dic = GetDict(doc.Ladders);
             var r = Build(doc);
 
-            #region 완성되지 않은 연결
+            #region 완성되지 않은 연결 - p1
             if (r.InvalidNodes.Count > 0)
             {
                 foreach (var vk in r.InvalidNodes.Keys)
@@ -273,6 +347,24 @@ namespace Devinno.PLC.Ladder
             }
             #endregion
 
+            #region 완성되지 않은 연결 - p2
+            if (r.ValidNodes.Count > 0)
+            {
+                var va = r.ValidNodes.Keys.ToList();
+                var ra = doc.Ladders.Where(x => (x.ItemType == LadderItemType.OUT_COIL || x.ItemType == LadderItemType.OUT_FUNC) && !va.Contains(x.Key)).ToList();
+
+                foreach (var v in ra)
+                {
+                    ret.Add(new LadderCheckMessage()
+                    {
+                        Row = v != null ? (int?)v.Row + 1 : null,
+                        Column = v != null ? (int?)v.Col + 1 : null,
+                        Message = $"완성되지 않은 연결입니다.",
+                    });
+                }
+            }
+            #endregion
+
             #region 잘못된 주석
             var els = doc.Ladders.Where(x => x.ItemType == LadderItemType.NONE && !(((x.Code.StartsWith("#") && x.Col == 0) || x.Code.StartsWith("'") || string.IsNullOrWhiteSpace(x.Code)))).ToList();
             foreach(var v in els)
@@ -289,24 +381,44 @@ namespace Devinno.PLC.Ladder
             foreach (var itm in doc.Ladders)
             {
                 #region 비정상적인 연결
-                if(itm.ItemType != LadderItemType.NONE)
                 {
                     string left = (itm.Row).ToString() + "," + (itm.Col - 1).ToString();
                     string top = (itm.Row - 1).ToString() + "," + (itm.Col).ToString();
                     string leftbottom = (itm.Row + 1).ToString() + "," + (itm.Col - 1).ToString();
 
-                    bool b1 = (dic.ContainsKey(left) && dic[left].ItemType != LadderItemType.OUT_COIL && dic[left].ItemType != LadderItemType.OUT_FUNC);
-                    bool b2 = (dic.ContainsKey(top) && dic[top].VerticalLine);
-                    bool b3 = (dic.ContainsKey(leftbottom) && itm.VerticalLine && dic[leftbottom].ItemType != LadderItemType.OUT_COIL && dic[leftbottom].ItemType != LadderItemType.OUT_FUNC);
-
-                    if (itm.Col > 0 && !b1 && !b2 && !b3)
+                    if (itm.ItemType != LadderItemType.NONE)
                     {
-                        ret.Add(new LadderCheckMessage()
+                        bool b1 = (dic.ContainsKey(left) && dic[left].ItemType == LadderItemType.OUT_COIL && dic[left].ItemType == LadderItemType.OUT_FUNC);                                            // 좌측이 종료노드
+                        bool b2 = !dic.ContainsKey(left) && dic.ContainsKey(top) && !dic[top].VerticalLine;
+                        bool b3 = !dic.ContainsKey(left) && !dic.ContainsKey(top);
+
+                        if (itm.Col > 0 && (b1 || b2 || b3))
                         {
-                            Row = itm.Row + 1,
-                            Column = itm.Col + 1,
-                            Message = "비정상적인 연결입니다."
-                        });
+                            ret.Add(new LadderCheckMessage()
+                            {
+                                Row = itm.Row + 1,
+                                Column = itm.Col + 1,
+                                Message = "비정상적인 연결입니다.",
+                            });
+                        }
+                    }
+                    else
+                    {
+                        if (itm.VerticalLine)
+                        {
+                            bool b1 = (!dic.ContainsKey(left) && !dic.ContainsKey(top));                                                                                                // 내가 수직연결을 가지고 있는데 왼편이 없고 위에가 없어
+                            bool b2 = (!dic.ContainsKey(left) && dic.ContainsKey(top) && !dic[top].VerticalLine);                                                                       // 내가 수직연결을 가지고 있는데 왼편이 없고 위가 수직을 안가지고 있어
+
+                            if (itm.Col > 0 && (b1 || b2))
+                            {
+                                ret.Add(new LadderCheckMessage()
+                                {
+                                    Row = itm.Row + 1,
+                                    Column = itm.Col + 1,
+                                    Message = "비정상적인 연결입니다.",
+                                });
+                            }
+                        }
                     }
                 }
                 #endregion
@@ -637,11 +749,16 @@ namespace Devinno.PLC.Ladder
                 sb.AppendLine("         {");
                 #region Load Special Relay
                 sb.AppendLine("             bool SR_ON  = _SR_ON,  SR_OFF  = _SR_OFF,  SR_BEGIN = _SR_BEGIN;        ");
-                sb.AppendLine("             bool SR_10R  = _SR_10R,  SR_100R  = _SR_100R,  SR_1000R  = _SR_1000R;   ");
-                sb.AppendLine("             bool SR_F10R = _SR_F10R, SR_F100R = _SR_F100R, SR_F1000R = _SR_F1000R;  ");
+                sb.AppendLine("             bool  SR_10R =  _SR_10R,  SR_20R  = _SR_20R,  SR_50R  = _SR_50R,  SR_100R  = _SR_100R,  SR_200R  = _SR_200R,  SR_250R  = _SR_250R,  SR_500R  = _SR_500R,  SR_1000R  = _SR_1000R;");
+                sb.AppendLine("             bool SR_F10R = _SR_F10R, SR_F20R = _SR_F20R, SR_F50R = _SR_F50R, SR_F100R = _SR_F100R, SR_F200R = _SR_F200R, SR_F250R = _SR_F250R, SR_F500R = _SR_F500R, SR_F1000R = _SR_F1000R;");
                 sb.AppendLine("                                                                                     ");
                 sb.AppendLine("             if( _SR_10R ) _SR_10R = false;                                          ");
+                sb.AppendLine("             if( _SR_20R ) _SR_20R = false;                                          ");
+                sb.AppendLine("             if( _SR_50R ) _SR_50R = false;                                          ");
                 sb.AppendLine("             if( _SR_100R ) _SR_100R = false;                                        ");
+                sb.AppendLine("             if( _SR_200R ) _SR_200R = false;                                        ");
+                sb.AppendLine("             if( _SR_250R ) _SR_250R = false;                                        ");
+                sb.AppendLine("             if( _SR_500R ) _SR_500R = false;                                        ");
                 sb.AppendLine("             if( _SR_1000R ) _SR_1000R = false;                                      ");
                 #endregion
                 #region Load Memory
