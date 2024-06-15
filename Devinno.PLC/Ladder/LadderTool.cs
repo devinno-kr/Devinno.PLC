@@ -18,6 +18,35 @@ namespace Devinno.PLC.Ladder
 {
     public class LadderTool
     {
+        #region LadderErrorIncomplete
+        public const string LadderErrorIncompleteK = "완성되지 않은 연결입니다.";
+        public const string LadderErrorIncompleteE = "This is an incomplete connection.";
+        
+        public const string LadderErrorSyntaxK = "잘못된 구문입니다.";
+        public const string LadderErrorSyntaxE = "This is an invalid syntax.";
+        
+        public const string LadderErrorAbnormalK = "비정상적인 연결입니다.";
+        public const string LadderErrorAbnormalE = "This is an abnormal connection.";
+        
+        public const string LadderErrorParenthesisK = "괄호가 닫히지 않았습니다.";
+        public const string LadderErrorParenthesisE = "The parenthesis is not closed.";
+        
+        public const string LadderErrorFunctionK = "함수 입력 형식이 잘못되었습니다.";
+        public const string LadderErrorFunctionE = "The function input format is incorrect.";
+        
+        public const string LadderErrorEmptyItemK = "입력 항목의 내용이 비어있습니다.";
+        public const string LadderErrorEmptyItemE = "The content of the input item is empty.";
+        
+        public const string LadderErrorWrongAddressK = "잘못된 주소나 심볼이 존재합니다.";
+        public const string LadderErrorWrongAddressE = "There is an invalid address or symbol.";
+        
+        public const string LadderErrorWrongFormulaK = "잘못된 수식이나 코드입니다.";
+        public const string LadderErrorWrongFormulaE = "This is an invalid formula or code.";
+       
+        public const string LadderErrorUnknownK = "알수없는 오류";
+        public const string LadderErrorUnknownE = "Unknown error";
+        #endregion
+
         #region Static Variable
         static string[] Operators = new string[] { "<<=", ">>=", "::", "->", "++", "--", "==", "!=", ">=", "<=", "&&", "||", "<<", ">>",
                                     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "=", "+", "-", "*", "/", ">",
@@ -340,7 +369,7 @@ namespace Devinno.PLC.Ladder
                         {
                             Row = ed != null ? (int?)ed.Row + 1 : null,
                             Column = ed != null ? (int?)ed.Col + 1 : null,
-                            Message = $"완성되지 않은 연결입니다."
+                            Message = LadderErrorIncompleteK,
                         });
                     }
                 }
@@ -359,7 +388,7 @@ namespace Devinno.PLC.Ladder
                     {
                         Row = v != null ? (int?)v.Row + 1 : null,
                         Column = v != null ? (int?)v.Col + 1 : null,
-                        Message = $"완성되지 않은 연결입니다.",
+                        Message = LadderErrorIncompleteK,
                     });
                 }
             }
@@ -373,7 +402,7 @@ namespace Devinno.PLC.Ladder
                 {
                     Row = v.Row + 1,
                     Column = v.Col + 1,
-                    Message = "잘못된 구문입니다."
+                    Message = LadderErrorSyntaxK,
                 });
             }
             #endregion
@@ -398,7 +427,7 @@ namespace Devinno.PLC.Ladder
                             {
                                 Row = itm.Row + 1,
                                 Column = itm.Col + 1,
-                                Message = "비정상적인 연결입니다.",
+                                Message = LadderErrorAbnormalK,
                             });
                         }
                     }
@@ -415,7 +444,7 @@ namespace Devinno.PLC.Ladder
                                 {
                                     Row = itm.Row + 1,
                                     Column = itm.Col + 1,
-                                    Message = "비정상적인 연결입니다.",
+                                    Message = LadderErrorAbnormalK,
                                 });
                             }
                         }
@@ -434,33 +463,45 @@ namespace Devinno.PLC.Ladder
                             {
                                 Row = itm.Row + 1,
                                 Column = itm.Col + 1,
-                                Message = "괄호가 닫히지 않았습니다."
+                                Message = LadderErrorParenthesisK
                             });
                         }
                     }
                     else 
                     {
-                        if (LadderFunc.Funcs.Where(x => x.Name.StartsWith(code.Split('(').Where(x => !string.IsNullOrWhiteSpace(x.Trim())).FirstOrDefault()?.Trim())).Count() > 0)
+                        if (!string.IsNullOrWhiteSpace(code))
                         {
-                            var fn = FuncInfo.Parse(code);
-                            if (fn != null)
+                            if (LadderFunc.Funcs.Where(x => code.Trim().StartsWith(x.Name)).Count() > 0)
                             {
-                                var result = LadderFunc.Check(doc, itm);
-                                if (result.Count > 0) ret.AddRange(result);
+                                var fn = FuncInfo.Parse(code);
+                                if (fn != null)
+                                {
+                                    var result = LadderFunc.Check(doc, itm);
+                                    if (result.Count > 0) ret.AddRange(result);
+                                }
+                                else
+                                {
+                                    ret.Add(new LadderCheckMessage()
+                                    {
+                                        Row = itm.Row + 1,
+                                        Column = itm.Col + 1,
+                                        Message = LadderErrorFunctionK
+                                    });
+                                }
                             }
                             else
                             {
-                                ret.Add(new LadderCheckMessage()
-                                {
-                                    Row = itm.Row + 1,
-                                    Column = itm.Col + 1,
-                                    Message = "함수 입력 형식이 잘못되었습니다."
-                                });
+                                var v = GetWords(code);
                             }
                         }
                         else
                         {
-                            var v = GetWords(code);
+                            ret.Add(new LadderCheckMessage()
+                            {
+                                Row = itm.Row + 1,
+                                Column = itm.Col + 1,
+                                Message = LadderErrorWrongFormulaK
+                            });
                         }
                     }
                 }
