@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.33130.400
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34902.65
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Devinno.PLC", "Devinno.PLC.csproj", "{E4492CA1-2961-4484-98E9-ACA28FEA6022}"
 EndProject
@@ -14,7 +14,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Devinno.PLC.Interface", "..
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LadderEditor", "..\LadderEditor\LadderEditor.csproj", "{FC53D9F4-F2ED-48D5-B146-A539F9C85657}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApp", "..\SampleApp\SampleApp.csproj", "{07E157C5-DC81-4422-AA01-B7EA5078173D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleApp", "..\SampleApp\SampleApp.csproj", "{07E157C5-DC81-4422-AA01-B7EA5078173D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

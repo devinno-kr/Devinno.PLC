@@ -528,9 +528,9 @@ namespace Devinno.PLC.Ladder
                 #region Compile Check
                 var codes = MakeCode(doc);
                 var file = Path.GetRandomFileName();
-                var rv = Compile(codes, file, doc.Libraries, Editor);
                 var lines = codes[0].Replace("\r\n", "\n").Split('\n');
-                if (!rv.Result.Success)
+                var rv = Compile(codes, file, doc.Libraries, Editor);
+                if (rv != null && !rv.Result.Success)
                 {
                     var ls = rv.Result.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
                     foreach (var v in ls)
@@ -580,7 +580,7 @@ namespace Devinno.PLC.Ladder
                         else ret.Add(new LadderCheckMessage() { Message = "알수없는 오류" });
                     }
                 }
-
+   
                 if (File.Exists(file)) File.Delete(file);
                 #endregion
             }
@@ -598,26 +598,29 @@ namespace Devinno.PLC.Ladder
                 #region Compile
                 var syntaxTrees = codes.Select(x => CSharpSyntaxTree.ParseText(x)).ToArray();
 
+                var runtimePath = Path.GetDirectoryName(typeof(System.Object).GetTypeInfo().Assembly.Location);
+
+
                 var dir = Path.GetDirectoryName(typeof(Object).GetTypeInfo().Assembly.Location);
                 var refPaths = new string[] {
-                    typeof(System.Object).GetTypeInfo().Assembly.Location,
-                    typeof(System.Linq.Enumerable).GetTypeInfo().Assembly.Location,
-                    typeof(System.Collections.Generic.CollectionExtensions).GetTypeInfo().Assembly.Location,
+                        Path.Combine(runtimePath, "System.Private.CoreLib.dll"),
+                        Path.Combine(runtimePath, "System.Linq.dll"),
+                        Path.Combine(runtimePath, "System.Collections.dll"),
 
-                    typeof(CollisionTool).GetTypeInfo().Assembly.Location,
-                    typeof(LadderBase).GetTypeInfo().Assembly.Location,
-                    typeof(ILadderLibrary).GetTypeInfo().Assembly.Location,
+                        typeof(CollisionTool).GetTypeInfo().Assembly.Location,
+                        typeof(LadderBase).GetTypeInfo().Assembly.Location,
+                        typeof(ILadderLibrary).GetTypeInfo().Assembly.Location,
 
-                    Path.Combine(Path.GetDirectoryName(typeof(System.Object).GetTypeInfo().Assembly.Location), "System.Runtime.dll"),
-                    Path.Combine(Path.GetDirectoryName(typeof(System.Object).GetTypeInfo().Assembly.Location), "System.Runtime.Loader.dll")
-                }.ToList();
+                        Path.Combine(runtimePath, "System.Runtime.dll"),
+                        Path.Combine(runtimePath, "System.Runtime.Loader.dll")
+                    }.ToList();
 
                 foreach (var v in Libraries.ToLookup(x => x.DllPath))
                 {
                     var vdir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LadderLibraries", v.Key);
                     if (Directory.Exists(vdir))
                     {
-                        foreach (var vpath in Directory.GetFiles(vdir).Where(x=>Path.GetExtension(x) == ".dll"))
+                        foreach (var vpath in Directory.GetFiles(vdir).Where(x => Path.GetExtension(x) == ".dll"))
                         {
                             refPaths.Add(vpath);
                         }
