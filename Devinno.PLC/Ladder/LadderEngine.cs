@@ -41,7 +41,7 @@ namespace Devinno.PLC.Ladder
         public int CommunicationLoopInterval { get; set; } = 10;
         public int DisconnectCheckTime { get; set; } = 1000;
         internal RuntimeLadderDocument Document { get; private set; } = new RuntimeLadderDocument();
-        public List<CommItem> Comms => Document.Base.Comms;
+        public List<ILadderComm> Comms => Document.Base.Comms;
 
         public BitMemories P => Document.Base?.P;
         public BitMemories M => Document.Base?.M;
