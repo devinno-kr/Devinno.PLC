@@ -207,13 +207,11 @@ namespace Devinno.PLC.Ladder
     {
         #region Properties
         public string Name => "Modbus RTU Slave";
-        public string Summary => $"{Port},  {Baudrate},  국번 {Slave}";
+        public string Summary => $"{Port},  {Baudrate}";
         public object Tag { get; set; }
 
         public string Port { get; set; } = "";
         public int Baudrate { get; set; } = 115200;
-
-        public int Slave { get; set; } = 1;
 
         public int P_BaseAddress { get; set; } = LadderBase.Default_P_BaseAddress;
         public int M_BaseAddress { get; set; } = LadderBase.Default_M_BaseAddress;
@@ -243,10 +241,11 @@ namespace Devinno.PLC.Ladder
             mdrs.Port = Port;
             mdrs.Baudrate = Baudrate;
             #endregion
+
             #region Event
             mdrs.BitReadRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessBitReads(s, P_BaseAddress, Base.P);
                     MDRSTool.ProcessBitReads(s, M_BaseAddress, Base.M);
@@ -255,7 +254,7 @@ namespace Devinno.PLC.Ladder
 
             mdrs.BitWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessBitWrite(s, P_BaseAddress, Base.P);
                     MDRSTool.ProcessBitWrite(s, M_BaseAddress, Base.M);
@@ -264,7 +263,7 @@ namespace Devinno.PLC.Ladder
 
             mdrs.MultiBitWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessMultiBitWrite(s, P_BaseAddress, Base.P);
                     MDRSTool.ProcessMultiBitWrite(s, M_BaseAddress, Base.M);
@@ -274,7 +273,7 @@ namespace Devinno.PLC.Ladder
 
             mdrs.WordReadRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessWordReads(s, T_BaseAddress, Base.T);
                     MDRSTool.ProcessWordReads(s, C_BaseAddress, Base.C);
@@ -286,7 +285,7 @@ namespace Devinno.PLC.Ladder
 
             mdrs.WordWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessWordWrite(s, T_BaseAddress, Base.T);
                     MDRSTool.ProcessWordWrite(s, C_BaseAddress, Base.C);
@@ -298,7 +297,7 @@ namespace Devinno.PLC.Ladder
 
             mdrs.MultiWordWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessMultiWordWrite(s, T_BaseAddress, Base.T);
                     MDRSTool.ProcessMultiWordWrite(s, C_BaseAddress, Base.C);
@@ -310,7 +309,7 @@ namespace Devinno.PLC.Ladder
 
             mdrs.WordBitSetRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDRSTool.ProcessWordBitSet(s, T_BaseAddress, Base.T);
                     MDRSTool.ProcessWordBitSet(s, C_BaseAddress, Base.C);
@@ -320,6 +319,7 @@ namespace Devinno.PLC.Ladder
                 }
             };
             #endregion
+
             mdrs.Start();
         }
         #endregion
@@ -505,10 +505,10 @@ namespace Devinno.PLC.Ladder
     {
         #region Properties
         public string Name => "Modbus TCP Slave";
-        public string Summary => $"국번 {Slave}";
+        public string Summary => $"Port : {LocalPort}";
         public object Tag { get; set; }
 
-        public int Slave { get; set; } = 1;
+        public int LocalPort { get; set; }
 
         public int P_BaseAddress { get; set; } = LadderBase.Default_P_BaseAddress;
         public int M_BaseAddress { get; set; } = LadderBase.Default_M_BaseAddress;
@@ -537,7 +537,7 @@ namespace Devinno.PLC.Ladder
             #region Event
             mdts.BitReadRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessBitReads(s, P_BaseAddress, Base.P);
                     MDTSTool.ProcessBitReads(s, M_BaseAddress, Base.M);
@@ -546,7 +546,7 @@ namespace Devinno.PLC.Ladder
 
             mdts.BitWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessBitWrite(s, P_BaseAddress, Base.P);
                     MDTSTool.ProcessBitWrite(s, M_BaseAddress, Base.M);
@@ -555,7 +555,7 @@ namespace Devinno.PLC.Ladder
 
             mdts.MultiBitWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessMultiBitWrite(s, P_BaseAddress, Base.P);
                     MDTSTool.ProcessMultiBitWrite(s, M_BaseAddress, Base.M);
@@ -565,7 +565,7 @@ namespace Devinno.PLC.Ladder
 
             mdts.WordReadRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessWordReads(s, T_BaseAddress, Base.T);
                     MDTSTool.ProcessWordReads(s, C_BaseAddress, Base.C);
@@ -577,7 +577,7 @@ namespace Devinno.PLC.Ladder
 
             mdts.WordWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessWordWrite(s, T_BaseAddress, Base.T);
                     MDTSTool.ProcessWordWrite(s, C_BaseAddress, Base.C);
@@ -589,7 +589,7 @@ namespace Devinno.PLC.Ladder
 
             mdts.MultiWordWriteRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessMultiWordWrite(s, T_BaseAddress, Base.T);
                     MDTSTool.ProcessMultiWordWrite(s, C_BaseAddress, Base.C);
@@ -601,7 +601,7 @@ namespace Devinno.PLC.Ladder
 
             mdts.WordBitSetRequest += (o, s) =>
             {
-                if (s.Slave == Slave)
+                if (s.Slave == Base.DeviceNo)
                 {
                     MDTSTool.ProcessWordBitSet(s, T_BaseAddress, Base.T);
                     MDTSTool.ProcessWordBitSet(s, C_BaseAddress, Base.C);
@@ -611,6 +611,8 @@ namespace Devinno.PLC.Ladder
                 }
             };
             #endregion
+
+            mdts.LocalPort = LocalPort;
             mdts.Start();
         }
         #endregion

@@ -33,6 +33,7 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Properties
+        public int DeviceNo { get; private set; }
         public string ID { get; private set; }
         public EngineState State { get; private set; } = EngineState.STANDBY;
         public long LoopTime { get; private set; }
@@ -149,7 +150,7 @@ namespace Devinno.PLC.Ladder
                                     if (rv.Result.Success)
                                     {
                                         Document.Download(doc);
-                                        Document.LadderIntialize();
+                                        Document.LadderIntialize(DeviceNo);
                                         System.Threading.Thread.Sleep(1000);
                                         if (Document.Base != null && Document.Initialized) State = EngineState.RUN;
                                     }
@@ -232,21 +233,24 @@ namespace Devinno.PLC.Ladder
         public virtual void OnEngineStop() { }
         #endregion
         #region Start
-        public void Start()
+        public void Start(int deviceNo)
         {
+            DeviceNo = deviceNo;
+
             if (File.Exists(RuntimeLadderDocument.RUNTIME_LADDER_FILE))
             {
                 var doc = Serialize.JsonDeserializeFromFile<LadderDocument>(RuntimeLadderDocument.RUNTIME_LADDER_FILE);
 
                 Document.LadderFinalize();
                 Document.Download(doc);
-                Document.LadderIntialize();
+                Document.LadderIntialize(DeviceNo);
 
                 if (Document.Base != null && Document.Initialized)
                 {
                     State = EngineState.RUN;
                 }
             }
+
             comm.DisconnectCheckTime = DisconnectCheckTime;
             comm.Start();
             IsStart = true;

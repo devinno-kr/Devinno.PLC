@@ -263,7 +263,7 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region LadderIntialize
-        public void LadderIntialize()
+        public void LadderIntialize(int deviceNo)
         {
             #region App Load
             if (File.Exists(LadderEngine.PATH_APP))
@@ -288,7 +288,7 @@ namespace Devinno.PLC.Ladder
 
             if (lb != null)
             {
-                lb.LadderIntialize(this);
+                lb.LadderIntialize(this, deviceNo);
                 Initialized = true;
             }
         }

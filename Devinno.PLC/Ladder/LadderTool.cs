@@ -793,7 +793,7 @@ namespace Devinno.PLC.Ladder
                 sb.AppendLine("         {");
                 #region Load Special Relay
                 sb.AppendLine("             bool SR_ON  = _SR_ON,  SR_OFF  = _SR_OFF,  SR_BEGIN = _SR_BEGIN;        ");
-                sb.AppendLine("             bool  SR_10R =  _SR_10R,  SR_20R  = _SR_20R,  SR_50R  = _SR_50R,  SR_100R  = _SR_100R,  SR_200R  = _SR_200R,  SR_250R  = _SR_250R,  SR_500R  = _SR_500R,  SR_1000R  = _SR_1000R;");
+                sb.AppendLine("             bool SR_10R =  _SR_10R,  SR_20R  = _SR_20R,  SR_50R  = _SR_50R,  SR_100R  = _SR_100R,  SR_200R  = _SR_200R,  SR_250R  = _SR_250R,  SR_500R  = _SR_500R,  SR_1000R  = _SR_1000R;");
                 sb.AppendLine("             bool SR_F10R = _SR_F10R, SR_F20R = _SR_F20R, SR_F50R = _SR_F50R, SR_F100R = _SR_F100R, SR_F200R = _SR_F200R, SR_F250R = _SR_F250R, SR_F500R = _SR_F500R, SR_F1000R = _SR_F1000R;");
                 sb.AppendLine("                                                                                     ");
                 sb.AppendLine("             if( _SR_10R ) _SR_10R = false;                                          ");

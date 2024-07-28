@@ -73,9 +73,17 @@ namespace Devinno.PLC.Ladder
         public WDS WM { get; private set; } = null;
         #endregion
 
-        public List<ILadderComm> Comms => Items;
+        #region DeviceNo
+        public int DeviceNo { get; private set; }
+        #endregion
 
+        #region Comms
+        public List<ILadderComm> Comms => Items;
+        #endregion
+
+        #region Debugs
         public Dictionary<string, DebugInfo> Debugs { get; } = new Dictionary<string, DebugInfo>();
+        #endregion
         #endregion
 
         #region Member Variable
@@ -92,7 +100,7 @@ namespace Devinno.PLC.Ladder
 
         #region Method
         #region Ladder Intialize
-        public void LadderIntialize(LadderDocument doc)
+        public void LadderIntialize(LadderDocument doc, int deviceNo)
         {
             P_Count = doc.P_Count;
             M_Count = doc.M_Count;
@@ -108,6 +116,8 @@ namespace Devinno.PLC.Ladder
             S = new BitMemories("S", S_Count);
             WP = new WDS("WP", P.RawData);
             WM = new WDS("WM", M.RawData);
+
+            DeviceNo = deviceNo;
 
             _SR_BEGIN = true;
 
