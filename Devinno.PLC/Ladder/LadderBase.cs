@@ -635,6 +635,9 @@ namespace Devinno.PLC.Ladder
         #region OnLadderFinalize
         public virtual void OnLadderFinalize() { }
         #endregion
+        #region OnExternalAction
+        public virtual void ExternalAction(string id) { }
+        #endregion
         #endregion
     }
 }

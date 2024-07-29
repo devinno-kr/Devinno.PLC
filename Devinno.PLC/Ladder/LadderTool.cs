@@ -1,4 +1,5 @@
-﻿using Devinno.PLC.Interface;
+﻿using Devinno.Data;
+using Devinno.PLC.Interface;
 using Devinno.Tools;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,6 +14,7 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Devinno.PLC.Ladder
 {
@@ -574,6 +576,10 @@ namespace Devinno.PLC.Ladder
                                         Message = msg
                                     });
                                 }
+                            }
+                            else if (vs.Count == 2 && vs[0] == "External" )
+                            {
+                                ret.Add(new LadderCheckMessage() { Message = vs[1] });
                             }
                             else ret.Add(new LadderCheckMessage() { Message = "알수없는 오류" });
                         }
@@ -1351,6 +1357,30 @@ namespace Devinno.PLC.Ladder
                 #region Reference
                 foreach (var v in doc.Libraries.Where(x => !string.IsNullOrWhiteSpace(x.InstanceName)))
                     sb.AppendLine($"            {v.InstanceName}.End();");
+                #endregion
+                sb.AppendLine("         }");
+                sb.AppendLine("         ");
+                sb.AppendLine("         public override void ExternalAction(string id)");
+                sb.AppendLine("         {");
+                #region ExternalAction
+                foreach(var id in doc.ExternalActions.Keys)
+                {
+                    var code = doc.ExternalActions[id];
+                    sb.AppendLine($"              if(id == \"{id.ToString()}\")");
+                    sb.AppendLine($"              {{");
+                    if (!string.IsNullOrWhiteSpace(code.Code))
+                    {
+                        using (var reader = new StringReader(code.Code))
+                        {
+                            string line;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                sb.AppendLine($"                   {line}     //External,{code.Position}");
+                            }
+                        }
+                    }
+                    sb.AppendLine($"              }}");
+                }
                 #endregion
                 sb.AppendLine("         }");
                 sb.AppendLine("         ");
