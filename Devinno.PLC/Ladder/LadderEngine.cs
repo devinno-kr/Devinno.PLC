@@ -278,7 +278,7 @@ namespace Devinno.PLC.Ladder
         #endregion
 
         #region Download
-        public void Download(string document)
+        private void Download(string document)
         {
             State = EngineState.DOWNLOADING;
 

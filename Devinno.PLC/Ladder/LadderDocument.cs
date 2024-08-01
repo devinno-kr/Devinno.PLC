@@ -31,7 +31,7 @@ namespace Devinno.PLC.Ladder
 
         public List<SymbolInfo> Symbols { get; set; } = new List<SymbolInfo>();
         public List<LadderLibrary> Libraries { get; set; } = new List<LadderLibrary>();
-        public Dictionary<string, ExternalAction> ExternalActions { get; set; } = new Dictionary<string, ExternalAction>();
+        
         public string Communications { get; set; }
         #endregion
 

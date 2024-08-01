@@ -1360,30 +1360,6 @@ namespace Devinno.PLC.Ladder
                 #endregion
                 sb.AppendLine("         }");
                 sb.AppendLine("         ");
-                sb.AppendLine("         public override void ExternalAction(string id)");
-                sb.AppendLine("         {");
-                #region ExternalAction
-                foreach(var id in doc.ExternalActions.Keys)
-                {
-                    var code = doc.ExternalActions[id];
-                    sb.AppendLine($"              if(id == \"{id.ToString()}\")");
-                    sb.AppendLine($"              {{");
-                    if (!string.IsNullOrWhiteSpace(code.Code))
-                    {
-                        using (var reader = new StringReader(code.Code))
-                        {
-                            string line;
-                            while ((line = reader.ReadLine()) != null)
-                            {
-                                sb.AppendLine($"                   {line}     //External,{code.Position}");
-                            }
-                        }
-                    }
-                    sb.AppendLine($"              }}");
-                }
-                #endregion
-                sb.AppendLine("         }");
-                sb.AppendLine("         ");
                 sb.AppendLine("     }");
                 sb.AppendLine("}");
                 codeLadder = sb.ToString();
