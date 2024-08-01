@@ -35,7 +35,7 @@ namespace Devinno.PLC.Ladder
         #region Properties
         public int DeviceNo { get; private set; }
         public string ID { get; private set; }
-        public EngineState State { get; private set; } = EngineState.STANDBY;
+        public EngineState State { get; private set; } = EngineState.STOP;
         public long LoopTime { get; private set; }
         public bool IsStart { get; private set; }
         public int LadderLoopInterval { get; set; } = 0;
@@ -112,60 +112,7 @@ namespace Devinno.PLC.Ladder
                             {
                                 State = EngineState.DOWNLOADING;
 
-                                ThreadPool.QueueUserWorkItem((o) =>
-                                {
-                                    Document.LadderFinalize();
-                                    System.Threading.Thread.Sleep(1000);
-
-                                    GC.Collect();
-                                    GC.WaitForPendingFinalizers();
-
-                                    var dm = Serialize.JsonDeserialize<DMSG>(e.RequestMessage);
-
-                                    #region Lib
-                                    var lib = Serialize.JsonDeserialize<List<LadderDll>>(dm.Lib);
-                                    {
-                                        var path_lib = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LadderLibraries");
-                                        if (!Directory.Exists(path_lib)) Directory.CreateDirectory(path_lib);
-
-                                        foreach (var v in lib)
-                                        {
-                                            var path = Path.Combine(path_lib, v.DllPath);
-                                            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-
-                                            foreach (var k in v.Binaries.Keys)
-                                            {
-                                                var file = Path.Combine(path, k);
-                                                File.WriteAllBytes(file, v.Binaries[k]);
-                                            }
-                                        }
-                                    }
-                                    #endregion
-                                    #region Doc
-                                    var doc = Serialize.JsonDeserialize<LadderDocument>(dm.Doc);
-                                    var codes = LadderTool.MakeCode(doc);
-                                    var rv = LadderTool.Compile(codes, Path.GetFileName(PATH_APP), doc.Libraries, false);
-                                    #endregion
-
-                                    if (rv.Result.Success)
-                                    {
-                                        Document.Download(doc);
-                                        Document.LadderIntialize(DeviceNo);
-                                        System.Threading.Thread.Sleep(1000);
-                                        if (Document.Base != null && Document.Initialized) State = EngineState.RUN;
-                                    }
-                                    else
-                                    {
-                                        /*
-                                        foreach (var v in rv.Result.Diagnostics)
-                                            if (v.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-                                                Console.WriteLine("err : " + v.GetMessage());
-                                        */
-
-                                        State = EngineState.STANDBY;
-                                    }
-                                   
-                                });
+                                Task.Run(() => { Download(e.RequestMessage); });
 
                                 e.ResponseMessage = Serialize.JsonSerialize(new PacketResult() { Message = "OK" });
                             }
@@ -204,7 +151,7 @@ namespace Devinno.PLC.Ladder
                     case CMD_STATE:
                         {
                             var v = new PacketState() { State = State };
-                            if(Document != null)
+                            if (Document != null)
                             {
                                 v.ProgramTitle = Document.Title;
                                 v.ProgramVersion = Document.Version;
@@ -212,8 +159,8 @@ namespace Devinno.PLC.Ladder
                             e.ResponseMessage = Serialize.JsonSerialize(v);
                         }
                         break;
-                    #endregion
-                   
+                        #endregion
+
                 }
             }
             catch (Exception ex) { }
@@ -236,6 +183,7 @@ namespace Devinno.PLC.Ladder
         public void Start(int deviceNo)
         {
             DeviceNo = deviceNo;
+            State = EngineState.STANDBY;
 
             if (File.Exists(RuntimeLadderDocument.RUNTIME_LADDER_FILE))
             {
@@ -316,14 +264,77 @@ namespace Devinno.PLC.Ladder
         #region Stop
         public void Stop()
         {
-            if (Document != null)    Document.LadderFinalize();
-           
+            if (Document != null) Document.LadderFinalize();
+
             comm.Stop();
+
+            State = EngineState.STOP;
 
             IsStart = false;
 
             OnEngineStop();
             EngineStop?.Invoke(this, new EventArgs());
+        }
+        #endregion
+
+        #region Download
+        public void Download(string document)
+        {
+            State = EngineState.DOWNLOADING;
+
+            if (!string.IsNullOrWhiteSpace(document))
+            {
+                try
+                {
+                    Document.LadderFinalize();
+                    System.Threading.Thread.Sleep(1000);
+
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    var dm = Serialize.JsonDeserialize<DMSG>(document);
+
+                    #region Lib
+                    var lib = Serialize.JsonDeserialize<List<LadderDll>>(dm.Lib);
+                    {
+                        var path_lib = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "LadderLibraries");
+                        if (!Directory.Exists(path_lib)) Directory.CreateDirectory(path_lib);
+
+                        foreach (var v in lib)
+                        {
+                            var path = Path.Combine(path_lib, v.DllPath);
+                            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+                            foreach (var k in v.Binaries.Keys)
+                            {
+                                var file = Path.Combine(path, k);
+                                File.WriteAllBytes(file, v.Binaries[k]);
+                            }
+                        }
+                    }
+                    #endregion
+                    #region Doc
+                    var doc = Serialize.JsonDeserialize<LadderDocument>(dm.Doc);
+                    var codes = LadderTool.MakeCode(doc);
+                    var rv = LadderTool.Compile(codes, Path.GetFileName(PATH_APP), doc.Libraries, false);
+                    #endregion
+
+                    if (rv.Result.Success)
+                    {
+                        Document.Download(doc);
+                        Document.LadderIntialize(DeviceNo);
+                        System.Threading.Thread.Sleep(1000);
+                        if (Document.Base != null && Document.Initialized) State = EngineState.RUN;
+                        else State = EngineState.STANDBY;
+                    }
+                    else
+                    {
+                        State = EngineState.STANDBY;
+                    }
+                }
+                catch { State = EngineState.STANDBY; }
+            }
+            else State = EngineState.STANDBY;
         }
         #endregion
         #endregion

@@ -35,6 +35,7 @@ namespace Devinno.PLC.Ladder
         RUN,
         DOWNLOADING,
         ERROR,
+        STOP,
     }
     #endregion
 
